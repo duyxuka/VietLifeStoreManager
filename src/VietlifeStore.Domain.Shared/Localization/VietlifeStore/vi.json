@@ -1,0 +1,116 @@
+{
+  "Culture": "vi",
+  "Texts": {
+    "Permission:IdentityManagement": "Quản lý định danh",
+
+    "Permission:Identity.Users": "Người dùng",
+    "Permission:Identity.Users.View": "Xem người dùng",
+
+    "Permission:Identity.Roles": "Vai trò",
+    "Permission:Identity.Roles.View": "Xem vai trò",
+
+    "Permission:VietlifeStore": "Vietlife Store",
+
+    "Permission:Banner": "Banner",
+    "Permission:Banner.View": "Xem banner",
+    "Permission:Banner.Create": "Tạo banner",
+    "Permission:Banner.Update": "Cập nhật banner",
+    "Permission:Banner.Delete": "Xóa banner",
+
+    "Permission:DanhMucCamNang": "Danh mục cẩm nang",
+    "Permission:DanhMucCamNang.View": "Xem danh mục cẩm nang",
+    "Permission:DanhMucCamNang.Create": "Tạo danh mục cẩm nang",
+    "Permission:DanhMucCamNang.Update": "Cập nhật danh mục cẩm nang",
+    "Permission:DanhMucCamNang.Delete": "Xóa danh mục cẩm nang",
+
+    "Permission:CamNang": "Cẩm nang",
+    "Permission:CamNang.View": "Xem cẩm nang",
+    "Permission:CamNang.Create": "Tạo cẩm nang",
+    "Permission:CamNang.Update": "Cập nhật cẩm nang",
+    "Permission:CamNang.Delete": "Xóa cẩm nang",
+
+    "Permission:DanhMucChinhSach": "Danh mục chính sách",
+    "Permission:DanhMucChinhSach.View": "Xem danh mục chính sách",
+    "Permission:DanhMucChinhSach.Create": "Tạo danh mục chính sách",
+    "Permission:DanhMucChinhSach.Update": "Cập nhật danh mục chính sách",
+    "Permission:DanhMucChinhSach.Delete": "Xóa danh mục chính sách",
+
+    "Permission:ChinhSach": "Chính sách",
+    "Permission:ChinhSach.View": "Xem chính sách",
+    "Permission:ChinhSach.Create": "Tạo chính sách",
+    "Permission:ChinhSach.Update": "Cập nhật chính sách",
+    "Permission:ChinhSach.Delete": "Xóa chính sách",
+
+    "Permission:DonHang": "Đơn hàng",
+    "Permission:DonHang.View": "Xem đơn hàng",
+    "Permission:DonHang.Create": "Tạo đơn hàng",
+    "Permission:DonHang.Update": "Cập nhật đơn hàng",
+    "Permission:DonHang.Delete": "Xóa đơn hàng",
+
+    "Permission:ChiTietDonHang": "Chi tiết đơn hàng",
+    "Permission:ChiTietDonHang.View": "Xem chi tiết đơn hàng",
+    "Permission:ChiTietDonHang.Create": "Tạo chi tiết đơn hàng",
+    "Permission:ChiTietDonHang.Update": "Cập nhật chi tiết đơn hàng",
+    "Permission:ChiTietDonHang.Delete": "Xóa chi tiết đơn hàng",
+
+    "Permission:Voucher": "Voucher",
+    "Permission:Voucher.View": "Xem voucher",
+    "Permission:Voucher.Create": "Tạo voucher",
+    "Permission:Voucher.Update": "Cập nhật voucher",
+    "Permission:Voucher.Delete": "Xóa voucher",
+
+    "Permission:LienHe": "Liên hệ",
+    "Permission:LienHe.View": "Xem liên hệ",
+    "Permission:LienHe.Create": "Tạo liên hệ",
+    "Permission:LienHe.Update": "Cập nhật liên hệ",
+    "Permission:LienHe.Delete": "Xóa liên hệ",
+
+    "Permission:SanPham": "Sản phẩm",
+    "Permission:SanPham.View": "Xem sản phẩm",
+    "Permission:SanPham.Create": "Tạo sản phẩm",
+    "Permission:SanPham.Update": "Cập nhật sản phẩm",
+    "Permission:SanPham.Delete": "Xóa sản phẩm",
+
+    "Permission:AnhSanPham": "Ảnh sản phẩm",
+    "Permission:AnhSanPham.View": "Xem ảnh sản phẩm",
+    "Permission:AnhSanPham.Create": "Tạo ảnh sản phẩm",
+    "Permission:AnhSanPham.Update": "Cập nhật ảnh sản phẩm",
+    "Permission:AnhSanPham.Delete": "Xóa ảnh sản phẩm",
+
+    "Permission:DanhMucSanPham": "Danh mục sản phẩm",
+    "Permission:DanhMucSanPham.View": "Xem danh mục sản phẩm",
+    "Permission:DanhMucSanPham.Create": "Tạo danh mục sản phẩm",
+    "Permission:DanhMucSanPham.Update": "Cập nhật danh mục sản phẩm",
+    "Permission:DanhMucSanPham.Delete": "Xóa danh mục sản phẩm",
+
+    "Permission:GiaTriThuocTinh": "Giá trị thuộc tính",
+    "Permission:GiaTriThuocTinh.View": "Xem giá trị thuộc tính",
+    "Permission:GiaTriThuocTinh.Create": "Tạo giá trị thuộc tính",
+    "Permission:GiaTriThuocTinh.Update": "Cập nhật giá trị thuộc tính",
+    "Permission:GiaTriThuocTinh.Delete": "Xóa giá trị thuộc tính",
+
+    "Permission:QuaTang": "Quà tặng",
+    "Permission:QuaTang.View": "Xem quà tặng",
+    "Permission:QuaTang.Create": "Tạo quà tặng",
+    "Permission:QuaTang.Update": "Cập nhật quà tặng",
+    "Permission:QuaTang.Delete": "Xóa quà tặng",
+
+    "Permission:SanPhamBienThe": "Sản phẩm biến thể",
+    "Permission:SanPhamBienThe.View": "Xem sản phẩm biến thể",
+    "Permission:SanPhamBienThe.Create": "Tạo sản phẩm biến thể",
+    "Permission:SanPhamBienThe.Update": "Cập nhật sản phẩm biến thể",
+    "Permission:SanPhamBienThe.Delete": "Xóa sản phẩm biến thể",
+
+    "Permission:SanPhamBienTheThuocTinh": "Thuộc tính sản phẩm biến thể",
+    "Permission:SanPhamBienTheThuocTinh.View": "Xem thuộc tính sản phẩm biến thể",
+    "Permission:SanPhamBienTheThuocTinh.Create": "Tạo thuộc tính sản phẩm biến thể",
+    "Permission:SanPhamBienTheThuocTinh.Update": "Cập nhật thuộc tính sản phẩm biến thể",
+    "Permission:SanPhamBienTheThuocTinh.Delete": "Xóa thuộc tính sản phẩm biến thể",
+
+    "Permission:ThuocTinh": "Thuộc tính",
+    "Permission:ThuocTinh.View": "Xem thuộc tính",
+    "Permission:ThuocTinh.Create": "Tạo thuộc tính",
+    "Permission:ThuocTinh.Update": "Cập nhật thuộc tính",
+    "Permission:ThuocTinh.Delete": "Xóa thuộc tính"
+  }
+}

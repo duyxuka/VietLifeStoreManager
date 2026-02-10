@@ -1,0 +1,32 @@
+﻿{
+  "applications": {
+    "VietlifeStore.Web": {
+      "type": "dotnet-project",
+      "launchUrl": "https://localhost:44385",
+      "path": "../../../src/VietlifeStore.Web/VietlifeStore.Web.csproj",
+      "kubernetesService": ".*-web$",
+      "healthCheckEndpoint": "/health-status",
+      "healthUiEndpoint": "/health-ui",
+      "execution": {
+        "order": 2
+      }
+    }
+  },
+  "containers": {
+    "serviceName": "VietlifeStore-Containers",
+  },
+  "tasks":{
+    "Initialize Solution":{
+    "type": "cli",
+    "runOnSolutionOpen": true,
+    "startCommand": "etc/scripts/initialize-solution.ps1",
+    "workingDirectory": "../../../"
+    },
+    "Migrate Database":{
+    "type": "cli",
+    "runOnSolutionOpen": false,
+    "startCommand": "etc/scripts/migrate-database.ps1",
+    "workingDirectory": "../../../"
+    }
+  }
+}

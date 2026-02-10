@@ -1,0 +1,116 @@
+{
+  "Culture": "en",
+  "Texts": {
+    "Permission:IdentityManagement": "Identity Management",
+
+    "Permission:Identity.Users": "Users",
+    "Permission:Identity.Users.View": "View users",
+
+    "Permission:Identity.Roles": "Roles",
+    "Permission:Identity.Roles.View": "View roles",
+
+    "Permission:VietlifeStore": "Vietlife Store",
+
+    "Permission:Banner": "Banner",
+    "Permission:Banner.View": "View banner",
+    "Permission:Banner.Create": "Create banner",
+    "Permission:Banner.Update": "Update banner",
+    "Permission:Banner.Delete": "Delete banner",
+
+    "Permission:DanhMucCamNang": "Handbook category",
+    "Permission:DanhMucCamNang.View": "View handbook categories",
+    "Permission:DanhMucCamNang.Create": "Create handbook category",
+    "Permission:DanhMucCamNang.Update": "Update handbook category",
+    "Permission:DanhMucCamNang.Delete": "Delete handbook category",
+
+    "Permission:CamNang": "Handbook",
+    "Permission:CamNang.View": "View handbook",
+    "Permission:CamNang.Create": "Create handbook",
+    "Permission:CamNang.Update": "Update handbook",
+    "Permission:CamNang.Delete": "Delete handbook",
+
+    "Permission:DanhMucChinhSach": "Policy category",
+    "Permission:DanhMucChinhSach.View": "View policy categories",
+    "Permission:DanhMucChinhSach.Create": "Create policy category",
+    "Permission:DanhMucChinhSach.Update": "Update policy category",
+    "Permission:DanhMucChinhSach.Delete": "Delete policy category",
+
+    "Permission:ChinhSach": "Policy",
+    "Permission:ChinhSach.View": "View policy",
+    "Permission:ChinhSach.Create": "Create policy",
+    "Permission:ChinhSach.Update": "Update policy",
+    "Permission:ChinhSach.Delete": "Delete policy",
+
+    "Permission:DonHang": "Order",
+    "Permission:DonHang.View": "View orders",
+    "Permission:DonHang.Create": "Create order",
+    "Permission:DonHang.Update": "Update order",
+    "Permission:DonHang.Delete": "Delete order",
+
+    "Permission:ChiTietDonHang": "Order detail",
+    "Permission:ChiTietDonHang.View": "View order details",
+    "Permission:ChiTietDonHang.Create": "Create order detail",
+    "Permission:ChiTietDonHang.Update": "Update order detail",
+    "Permission:ChiTietDonHang.Delete": "Delete order detail",
+
+    "Permission:Voucher": "Voucher",
+    "Permission:Voucher.View": "View voucher",
+    "Permission:Voucher.Create": "Create voucher",
+    "Permission:Voucher.Update": "Update voucher",
+    "Permission:Voucher.Delete": "Delete voucher",
+
+    "Permission:LienHe": "Contact",
+    "Permission:LienHe.View": "View contacts",
+    "Permission:LienHe.Create": "Create contact",
+    "Permission:LienHe.Update": "Update contact",
+    "Permission:LienHe.Delete": "Delete contact",
+
+    "Permission:SanPham": "Product",
+    "Permission:SanPham.View": "View products",
+    "Permission:SanPham.Create": "Create product",
+    "Permission:SanPham.Update": "Update product",
+    "Permission:SanPham.Delete": "Delete product",
+
+    "Permission:AnhSanPham": "Product image",
+    "Permission:AnhSanPham.View": "View product images",
+    "Permission:AnhSanPham.Create": "Create product image",
+    "Permission:AnhSanPham.Update": "Update product image",
+    "Permission:AnhSanPham.Delete": "Delete product image",
+
+    "Permission:DanhMucSanPham": "Product category",
+    "Permission:DanhMucSanPham.View": "View product categories",
+    "Permission:DanhMucSanPham.Create": "Create product category",
+    "Permission:DanhMucSanPham.Update": "Update product category",
+    "Permission:DanhMucSanPham.Delete": "Delete product category",
+
+    "Permission:GiaTriThuocTinh": "Attribute value",
+    "Permission:GiaTriThuocTinh.View": "View attribute values",
+    "Permission:GiaTriThuocTinh.Create": "Create attribute value",
+    "Permission:GiaTriThuocTinh.Update": "Update attribute value",
+    "Permission:GiaTriThuocTinh.Delete": "Delete attribute value",
+
+    "Permission:QuaTang": "Gift",
+    "Permission:QuaTang.View": "View gifts",
+    "Permission:QuaTang.Create": "Create gift",
+    "Permission:QuaTang.Update": "Update gift",
+    "Permission:QuaTang.Delete": "Delete gift",
+
+    "Permission:SanPhamBienThe": "Product variant",
+    "Permission:SanPhamBienThe.View": "View product variants",
+    "Permission:SanPhamBienThe.Create": "Create product variant",
+    "Permission:SanPhamBienThe.Update": "Update product variant",
+    "Permission:SanPhamBienThe.Delete": "Delete product variant",
+
+    "Permission:SanPhamBienTheThuocTinh": "Product variant attribute",
+    "Permission:SanPhamBienTheThuocTinh.View": "View product variant attributes",
+    "Permission:SanPhamBienTheThuocTinh.Create": "Create product variant attribute",
+    "Permission:SanPhamBienTheThuocTinh.Update": "Update product variant attribute",
+    "Permission:SanPhamBienTheThuocTinh.Delete": "Delete product variant attribute",
+
+    "Permission:ThuocTinh": "Attribute",
+    "Permission:ThuocTinh.View": "View attributes",
+    "Permission:ThuocTinh.Create": "Create attribute",
+    "Permission:ThuocTinh.Update": "Update attribute",
+    "Permission:ThuocTinh.Delete": "Delete attribute"
+  }
+}
