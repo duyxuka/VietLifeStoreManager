@@ -13,7 +13,5 @@ namespace VietlifeStore.Entity.Banners
         public string? Anh { get; set; } // URL ảnh
         public string? LienKet { get; set; } // URL link
         public bool TrangThai { get; set; } = true;
-        public string? AnhName { get; set; }
-        public string? AnhContent { get; set; }
     }
 }

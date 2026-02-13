@@ -17,7 +17,5 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
         public string TitleSEO { get; set; }
         public string Keyword { get; set; }
         public string DescriptionSEO { get; set; }
-        public string? AnhName { get; set; }
-        public string? AnhContent { get; set; }
     }
 }

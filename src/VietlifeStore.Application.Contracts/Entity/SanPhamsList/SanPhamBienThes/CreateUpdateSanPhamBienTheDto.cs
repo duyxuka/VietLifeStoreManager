@@ -9,7 +9,7 @@ namespace VietlifeStore.Entity.SanPhamsList.SanPhamBienThes
 {
     public class CreateUpdateSanPhamBienTheDto
     {
-        public Guid SanPhamId { get; set; }
+        public Guid? Id { get; set; }
         public decimal Gia { get; set; }
         public string Ten { get; set; }
         public decimal? GiaKhuyenMai { get; set; }

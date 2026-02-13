@@ -34,6 +34,7 @@ namespace VietlifeStore.Entity.SanPhamsList.SanPhams
         public bool LaDatLich { get; set; } = false; // Sản phẩm có phải là dịch vụ đặt lịch không
         public DateTime? ThoiHanBatDau { get; set; }
         public DateTime? ThoiHanKetThuc { get; set; }
+        public int? PhanTramGiamGia { get; set; }
         public List<ThuocTinhDto> ThuocTinhs { get; set; } = new();
         public List<string> AnhPhu { get; set; } = new();
         public List<SanPhamBienTheDto> BienThes { get; set; } = new();

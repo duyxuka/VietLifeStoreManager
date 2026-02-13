@@ -18,5 +18,6 @@ namespace VietlifeStore.Entity.SanPhamsList.SanPhams
         Task<PagedResultDto<SanPhamInListDto>> GetListFilterAsync(BaseListFilterDto input);
         Task<List<SanPhamInListDto>> GetListAllAsync();
         Task DeleteMultipleAsync(IEnumerable<Guid> ids);
+        Task<List<SanPhamInListDto>> GetTopBanChayAsync(int top = 6);
     }
 }

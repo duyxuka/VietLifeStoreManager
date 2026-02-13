@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,7 +7,9 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using VietlifeStore.Entity.MediaContainers;
 using VietlifeStore.Entity.SanPhamsList.DanhMucSanPhams;
+using VietlifeStore.Entity.UploadFile;
 using VietlifeStore.Permissions;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.BlobStoring;
@@ -24,14 +27,17 @@ namespace VietlifeStore.Entity.SanPhams
             CreateUpdateDanhMucSanPhamDto>,
         IDanhMucSanPhamsAppService
     {
-        private readonly IBlobContainer<MediaContainer> _mediaContainer;
+        private readonly IRepository<SanPham, Guid> _sanPhamRepository;
+        private readonly IMediaAppService _mediaAppService;
 
         public DanhMucSanPhamsAppService(
             IRepository<DanhMucSanPham, Guid> repository,
-            IBlobContainer<MediaContainer> mediaContainer)
+            IRepository<SanPham, Guid> sanPhamRepository,
+            IMediaAppService mediaAppService)
             : base(repository)
         {
-            _mediaContainer = mediaContainer;
+            _sanPhamRepository = sanPhamRepository;
+            _mediaAppService = mediaAppService;
 
             GetPolicyName = VietlifeStorePermissions.DanhMucSanPham.View;
             GetListPolicyName = VietlifeStorePermissions.DanhMucSanPham.View;
@@ -40,10 +46,15 @@ namespace VietlifeStore.Entity.SanPhams
             DeletePolicyName = VietlifeStorePermissions.DanhMucSanPham.Delete;
         }
 
+
         // ================= CREATE =================
         [Authorize(VietlifeStorePermissions.DanhMucSanPham.Create)]
         public override async Task<DanhMucSanPhamDto> CreateAsync(CreateUpdateDanhMucSanPhamDto input)
         {
+            if (string.IsNullOrWhiteSpace(input.AnhThumbnail))
+                throw new UserFriendlyException("Không thấy file ảnh danh mục sản phẩm thumbnail");
+            if (string.IsNullOrWhiteSpace(input.AnhBanner))
+                throw new UserFriendlyException("Không thấy file ảnh danh mục sản phẩm banner");
             var entity = new DanhMucSanPham
             {
                 Ten = input.Ten,
@@ -51,10 +62,10 @@ namespace VietlifeStore.Entity.SanPhams
                 TrangThai = input.TrangThai,
                 TitleSEO = input.TitleSEO,
                 Keyword = input.Keyword,
-                DescriptionSEO = input.DescriptionSEO
+                DescriptionSEO = input.DescriptionSEO,
+                AnhThumbnail = input.AnhThumbnail,
+                AnhBanner = input.AnhBanner
             };
-
-            await SaveImagesAsync(entity, input);
 
             var created = await Repository.InsertAsync(entity, autoSave: true);
             return MapToGetOutputDto(created);
@@ -65,66 +76,121 @@ namespace VietlifeStore.Entity.SanPhams
         public override async Task<DanhMucSanPhamDto> UpdateAsync(Guid id, CreateUpdateDanhMucSanPhamDto input)
         {
             var entity = await Repository.GetAsync(id);
-
+            var oldThumbnail = entity.AnhThumbnail;
+            var oldBanner = entity.AnhBanner;
             entity.Ten = input.Ten;
             entity.Slug = input.Slug;
             entity.TrangThai = input.TrangThai;
             entity.TitleSEO = input.TitleSEO;
             entity.Keyword = input.Keyword;
             entity.DescriptionSEO = input.DescriptionSEO;
+            // Nếu có ảnh mới → xoá ảnh cũ trước khi cập nhật
+            if (!string.IsNullOrWhiteSpace(input.AnhThumbnail) && input.AnhThumbnail != oldThumbnail)
+            {
+                entity.AnhThumbnail = input.AnhThumbnail;
 
-            await SaveImagesAsync(entity, input);
+                // Xóa ảnh cũ
+                if (!string.IsNullOrWhiteSpace(oldThumbnail))
+                {
+                    try
+                    {
+                        await _mediaAppService.DeleteAsync(oldThumbnail);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log nhưng không throw - không block update nếu xóa file thất bại
+                        Logger.LogWarning(ex, $"Không thể xóa ảnh cũ: {oldThumbnail}");
+                    }
+                }
+            }
+
+            // ✅ Xử lý Banner
+            if (!string.IsNullOrWhiteSpace(input.AnhBanner) && input.AnhBanner != oldBanner)
+            {
+                entity.AnhBanner = input.AnhBanner;
+
+                // Xóa ảnh cũ
+                if (!string.IsNullOrWhiteSpace(oldBanner))
+                {
+                    try
+                    {
+                        await _mediaAppService.DeleteAsync(oldBanner);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log nhưng không throw - không block update nếu xóa file thất bại
+                        Logger.LogWarning(ex, $"Không thể xóa ảnh cũ: {oldBanner}");
+                    }
+                }
+            }
 
             await Repository.UpdateAsync(entity, autoSave: true);
             return MapToGetOutputDto(entity);
+        }
+
+        // ================= DELETE SINGLE =================
+        [Authorize(VietlifeStorePermissions.DanhMucSanPham.Delete)]
+        public override async Task DeleteAsync(Guid id)
+        {
+            var entity = await Repository.GetAsync(id);
+
+            if (!string.IsNullOrWhiteSpace(entity.AnhThumbnail))
+                await _mediaAppService.DeleteAsync(entity.AnhThumbnail);
+
+            if (!string.IsNullOrWhiteSpace(entity.AnhBanner))
+                await _mediaAppService.DeleteAsync(entity.AnhBanner);
+
+            await base.DeleteAsync(id);
         }
 
         // ================= DELETE MULTIPLE =================
         [Authorize(VietlifeStorePermissions.DanhMucSanPham.Delete)]
         public async Task DeleteMultipleAsync(IEnumerable<Guid> ids)
         {
-            await Repository.DeleteManyAsync(ids);
-            await UnitOfWorkManager.Current.SaveChangesAsync();
+            var list = await Repository.GetListAsync(x => ids.Contains(x.Id));
+
+            foreach (var item in list)
+            {
+                if (!string.IsNullOrWhiteSpace(item.AnhThumbnail))
+                    await _mediaAppService.DeleteAsync(item.AnhThumbnail);
+
+                if (!string.IsNullOrWhiteSpace(item.AnhBanner))
+                    await _mediaAppService.DeleteAsync(item.AnhBanner);
+            }
+
+            await Repository.DeleteManyAsync(list);
         }
 
         // ================= GET ALL =================
         [AllowAnonymous]
         public async Task<List<DanhMucSanPhamInListDto>> GetListAllAsync()
         {
-            var entities = await AsyncExecuter.ToListAsync(
-                (await Repository.GetQueryableAsync())
-                    .Where(x => x.TrangThai)
-                    .OrderBy(x => x.Ten)
-            );
+            var query = (await Repository.GetQueryableAsync())
+                .Where(x => x.TrangThai);
+
+            var entities = await AsyncExecuter.ToListAsync(query);
 
             var result = ObjectMapper.Map<
                 List<DanhMucSanPham>,
                 List<DanhMucSanPhamInListDto>
             >(entities);
 
-            foreach (var item in result)
-            {
-                // Thumbnail
-                if (!string.IsNullOrWhiteSpace(item.AnhThumbnail))
-                {
-                    var bytes = await _mediaContainer.GetAllBytesOrNullAsync(item.AnhThumbnail);
-                    item.AnhThumbnailContent = bytes == null
-                        ? null
-                        : $"data:image/png;base64,{Convert.ToBase64String(bytes)}";
-                }
+            var sanPhamQuery = (await _sanPhamRepository.GetQueryableAsync())
+                .Where(x => x.TrangThai);
 
-                // Banner
-                if (!string.IsNullOrWhiteSpace(item.AnhBanner))
-                {
-                    var bytes = await _mediaContainer.GetAllBytesOrNullAsync(item.AnhBanner);
-                    item.AnhBannerContent = bytes == null
-                        ? null
-                        : $"data:image/png;base64,{Convert.ToBase64String(bytes)}";
-                }
-            }
+            var sanPhamCounts = await AsyncExecuter.ToListAsync(
+                sanPhamQuery
+                    .GroupBy(x => x.DanhMucId)
+                    .Select(g => new
+                    {
+                        DanhMucId = g.Key,
+                        Count = g.Count()
+                    })
+            );
 
             return result;
         }
+
 
 
         // ================= FILTER + PAGING =================
@@ -147,38 +213,5 @@ namespace VietlifeStore.Entity.SanPhams
             );
         }
 
-        // ================= IMAGE =================
-        private async Task SaveImagesAsync(DanhMucSanPham entity, CreateUpdateDanhMucSanPhamDto input)
-        {
-            if (!string.IsNullOrWhiteSpace(input.AnhThumbnailContent))
-            {
-                await SaveImageAsync(input.AnhThumbnailName, input.AnhThumbnailContent);
-                entity.AnhThumbnail = input.AnhThumbnailName;
-            }
-
-            if (!string.IsNullOrWhiteSpace(input.AnhBannerContent))
-            {
-                await SaveImageAsync(input.AnhBannerName, input.AnhBannerContent);
-                entity.AnhBanner = input.AnhBannerName;
-            }
-        }
-
-        private async Task SaveImageAsync(string fileName, string base64)
-        {
-            var regex = new Regex(@"^[\w/\:.-]+;base64,");
-            base64 = regex.Replace(base64, string.Empty);
-
-            var bytes = Convert.FromBase64String(base64);
-            await _mediaContainer.SaveAsync(fileName, bytes, overrideExisting: true);
-        }
-
-        public async Task<string> GetImageAsync(string fileName)
-        {
-            if (string.IsNullOrWhiteSpace(fileName))
-                return null;
-
-            var bytes = await _mediaContainer.GetAllBytesOrNullAsync(fileName);
-            return bytes == null ? null : Convert.ToBase64String(bytes);
-        }
     }
 }

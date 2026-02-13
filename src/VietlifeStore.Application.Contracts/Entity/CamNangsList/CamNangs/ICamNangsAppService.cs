@@ -18,5 +18,6 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
         Task<PagedResultDto<CamNangInListDto>> GetListFilterAsync(BaseListFilterDto input);
         Task<List<CamNangInListDto>> GetListAllAsync();
         Task DeleteMultipleAsync(IEnumerable<Guid> ids);
+        Task<List<CamNangInListDto>> GetLatestCamNangHomeAsync(int take = 4);
     }
 }

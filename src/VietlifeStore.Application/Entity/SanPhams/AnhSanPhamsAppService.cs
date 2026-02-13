@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using VietlifeStore.Entity.MediaContainers;
 using VietlifeStore.Entity.SanPhamsList.AnhSanPhams;
+using VietlifeStore.Entity.UploadFile;
 using VietlifeStore.Permissions;
 using Volo.Abp.Application.Services;
 using Volo.Abp.BlobStoring;
@@ -18,28 +19,25 @@ namespace VietlifeStore.Entity.SanPhams
     public class AnhSanPhamsAppService : ApplicationService
     {
         private readonly IRepository<AnhSanPham, Guid> _repository;
-        private readonly IBlobContainer<MediaContainer> _mediaContainer;
+        private readonly IMediaAppService _mediaAppService;
 
         public AnhSanPhamsAppService(
             IRepository<AnhSanPham, Guid> repository,
-            IBlobContainer<MediaContainer> mediaContainer)
+            IMediaAppService mediaAppService)
         {
             _repository = repository;
-            _mediaContainer = mediaContainer;
+            _mediaAppService = mediaAppService;
         }
 
         // ================= CREATE =================
         [Authorize(VietlifeStorePermissions.SanPham.Update)]
         public async Task<AnhSanPhamDto> CreateAsync(CreateUpdateAnhSanPhamDto input)
         {
-            var fileName = $"{Guid.NewGuid()}_{input.AnhName}";
-
-            await SaveImageAsync(fileName, input.AnhContent);
 
             var entity = new AnhSanPham
             {
                 SanPhamId = input.SanPhamId,
-                Anh = fileName, // chỉ tên file
+                Anh = input.Anh,
                 Status = true
             };
 
@@ -56,7 +54,7 @@ namespace VietlifeStore.Entity.SanPhams
 
             if (!string.IsNullOrWhiteSpace(entity.Anh))
             {
-                await _mediaContainer.DeleteAsync(entity.Anh);
+                await _mediaAppService.DeleteAsync(entity.Anh);
             }
 
             await _repository.DeleteAsync(entity);
@@ -72,7 +70,7 @@ namespace VietlifeStore.Entity.SanPhams
             {
                 if (!string.IsNullOrWhiteSpace(item.Anh))
                 {
-                    await _mediaContainer.DeleteAsync(item.Anh);
+                    await _mediaAppService.DeleteAsync(item.Anh);
                 }
             }
 
@@ -88,27 +86,6 @@ namespace VietlifeStore.Entity.SanPhams
             );
 
             return ObjectMapper.Map<List<AnhSanPham>, List<AnhSanPhamDto>>(list);
-        }
-
-        // ================= GET IMAGE =================
-        public async Task<string> GetImageAsync(string fileName)
-        {
-            if (string.IsNullOrWhiteSpace(fileName))
-                return null;
-
-            var bytes = await _mediaContainer.GetAllBytesOrNullAsync(fileName);
-            return bytes == null ? null : Convert.ToBase64String(bytes);
-        }
-
-        // ================= PRIVATE =================
-        private async Task SaveImageAsync(string fileName, string base64)
-        {
-            var regex = new Regex(@"^[\w/\:.-]+;base64,");
-            base64 = regex.Replace(base64, string.Empty);
-
-            var bytes = Convert.FromBase64String(base64);
-
-            await _mediaContainer.SaveAsync(fileName, bytes, overrideExisting: true);
         }
     }
 }

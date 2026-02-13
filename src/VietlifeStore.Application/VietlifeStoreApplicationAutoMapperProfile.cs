@@ -68,7 +68,7 @@ public class VietlifeStoreApplicationAutoMapperProfile : Profile
         //CamNang
         CreateMap<CreateUpdateCamNangDto, CamNang>();
         CreateMap<CamNang, CamNangDto>();
-        CreateMap<CamNang, CamNangInListDto>();
+        CreateMap<CamNang, CamNangInListDto>().ForMember(dest => dest.CreationTime, opt => opt.MapFrom(src => src.CreationTime));
 
         //DanhMucChinhSach
         CreateMap<CreateUpdateDanhMucChinhSachDto, DanhMucChinhSach>();

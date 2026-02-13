@@ -10,5 +10,7 @@ namespace VietlifeStore
     public class BaseListFilterDto : PagedResultRequestDto
     {
         public string? Keyword { get; set; }
+        public string? Sort { get; set; }
+        public string? DanhMucSlug { get; set; }
     }
 }

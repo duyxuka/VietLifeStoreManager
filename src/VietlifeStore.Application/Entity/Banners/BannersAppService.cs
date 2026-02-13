@@ -1,14 +1,14 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using VietlifeStore.Entity.MediaContainers;
+using VietlifeStore.Entity.UploadFile;
 using VietlifeStore.Permissions;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
-using Volo.Abp.BlobStoring;
 using Volo.Abp.Domain.Repositories;
 
 namespace VietlifeStore.Entity.Banners
@@ -23,14 +23,14 @@ namespace VietlifeStore.Entity.Banners
             CreateUpdateBannerDto>,
         IBannersAppService
     {
-        private readonly IBlobContainer<MediaContainer> _mediaContainer;
+        private readonly IMediaAppService _mediaAppService;
 
         public BannersAppService(
             IRepository<Banner, Guid> repository,
-            IBlobContainer<MediaContainer> mediaContainer)
+            IMediaAppService mediaAppService)
             : base(repository)
         {
-            _mediaContainer = mediaContainer;
+            _mediaAppService = mediaAppService;
 
             GetPolicyName = VietlifeStorePermissions.Banner.View;
             GetListPolicyName = VietlifeStorePermissions.Banner.View;
@@ -43,15 +43,17 @@ namespace VietlifeStore.Entity.Banners
         [Authorize(VietlifeStorePermissions.Banner.Create)]
         public override async Task<BannerDto> CreateAsync(CreateUpdateBannerDto input)
         {
+            if (string.IsNullOrWhiteSpace(input.Anh))
+                throw new UserFriendlyException("Không thấy file ảnh");
+
             var entity = new Banner
             {
                 TieuDe = input.TieuDe,
                 MoTa = input.MoTa,
                 LienKet = input.LienKet,
-                TrangThai = input.TrangThai
+                TrangThai = input.TrangThai,
+                Anh = input.Anh // chỉ lưu fileName
             };
-
-            await SaveImageAsync(entity, input);
 
             await Repository.InsertAsync(entity, autoSave: true);
             return MapToGetOutputDto(entity);
@@ -63,27 +65,70 @@ namespace VietlifeStore.Entity.Banners
         {
             var entity = await Repository.GetAsync(id);
 
+            // ✅ Lưu tên ảnh cũ
+            var oldImage = entity.Anh;
+
             entity.TieuDe = input.TieuDe;
             entity.MoTa = input.MoTa;
             entity.LienKet = input.LienKet;
             entity.TrangThai = input.TrangThai;
 
-            await SaveImageAsync(entity, input);
+            // ✅ Nếu có ảnh mới và khác ảnh cũ
+            if (!string.IsNullOrWhiteSpace(input.Anh) && input.Anh != oldImage)
+            {
+                entity.Anh = input.Anh;
+
+                // ✅ Xóa ảnh cũ
+                if (!string.IsNullOrWhiteSpace(oldImage))
+                {
+                    try
+                    {
+                        await _mediaAppService.DeleteAsync(oldImage);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log nhưng không throw - không block update nếu xóa file thất bại
+                        Logger.LogWarning(ex, $"Không thể xóa ảnh cũ: {oldImage}");
+                    }
+                }
+            }
 
             await Repository.UpdateAsync(entity, autoSave: true);
             return MapToGetOutputDto(entity);
+        }
+
+        // ================= DELETE SINGLE =================
+        [Authorize(VietlifeStorePermissions.Banner.Delete)]
+        public override async Task DeleteAsync(Guid id)
+        {
+            var entity = await Repository.GetAsync(id);
+
+            if (!string.IsNullOrWhiteSpace(entity.Anh))
+            {
+                await _mediaAppService.DeleteAsync(entity.Anh);
+            }
+
+            await base.DeleteAsync(id);
         }
 
         // ================= DELETE MULTIPLE =================
         [Authorize(VietlifeStorePermissions.Banner.Delete)]
         public async Task DeleteMultipleAsync(IEnumerable<Guid> ids)
         {
-            await Repository.DeleteManyAsync(ids);
-            await UnitOfWorkManager.Current.SaveChangesAsync();
+            var list = await Repository.GetListAsync(x => ids.Contains(x.Id));
+
+            foreach (var item in list)
+            {
+                if (!string.IsNullOrWhiteSpace(item.Anh))
+                {
+                    await _mediaAppService.DeleteAsync(item.Anh);
+                }
+            }
+
+            await Repository.DeleteManyAsync(list);
         }
 
         // ================= GET ALL ACTIVE =================
-        [AllowAnonymous]
         public async Task<List<BannerInListDto>> GetListAllAsync()
         {
             var list = await AsyncExecuter.ToListAsync(
@@ -92,25 +137,10 @@ namespace VietlifeStore.Entity.Banners
                     .OrderByDescending(x => x.CreationTime)
             );
 
-            var result = ObjectMapper.Map<List<Banner>, List<BannerInListDto>>(list);
-
-            foreach (var item in result)
-            {
-                if (!string.IsNullOrWhiteSpace(item.Anh))
-                {
-                    var bytes = await _mediaContainer.GetAllBytesOrNullAsync(item.Anh);
-                    item.AnhContent = bytes == null
-                        ? null
-                        : $"data:image/png;base64,{Convert.ToBase64String(bytes)}";
-                }
-            }
-
-            return result;
+            return ObjectMapper.Map<List<Banner>, List<BannerInListDto>>(list);
         }
 
-
         // ================= FILTER + PAGING =================
-        [Authorize(VietlifeStorePermissions.Banner.View)]
         public async Task<PagedResultDto<BannerInListDto>> GetListFilterAsync(BaseListFilterDto input)
         {
             var query = (await Repository.GetQueryableAsync())
@@ -130,34 +160,6 @@ namespace VietlifeStore.Entity.Banners
                 totalCount,
                 ObjectMapper.Map<List<Banner>, List<BannerInListDto>>(items)
             );
-        }
-
-        // ================= IMAGE =================
-        private async Task SaveImageAsync(Banner entity, CreateUpdateBannerDto input)
-        {
-            if (!string.IsNullOrWhiteSpace(input.AnhContent))
-            {
-                await SaveImageAsync(input.AnhName, input.AnhContent);
-                entity.Anh = input.AnhName;
-            }
-        }
-
-        private async Task SaveImageAsync(string fileName, string base64)
-        {
-            var regex = new Regex(@"^[\w/\:.-]+;base64,");
-            base64 = regex.Replace(base64, string.Empty);
-
-            var bytes = Convert.FromBase64String(base64);
-            await _mediaContainer.SaveAsync(fileName, bytes, overrideExisting: true);
-        }
-
-        public async Task<string?> GetImageAsync(string fileName)
-        {
-            if (string.IsNullOrWhiteSpace(fileName))
-                return null;
-
-            var bytes = await _mediaContainer.GetAllBytesOrNullAsync(fileName);
-            return bytes == null ? null : Convert.ToBase64String(bytes);
         }
     }
 }

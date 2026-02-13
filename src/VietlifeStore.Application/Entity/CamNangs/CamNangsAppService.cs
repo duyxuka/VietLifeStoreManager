@@ -1,15 +1,20 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using VietlifeStore.Entity.CamNangs;
 using VietlifeStore.Entity.MediaContainers;
+using VietlifeStore.Entity.UploadFile;
 using VietlifeStore.Permissions;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.BlobStoring;
+using Volo.Abp.Content;
 using Volo.Abp.Domain.Repositories;
 
 namespace VietlifeStore.Entity.CamNangsList.CamNangs
@@ -24,14 +29,14 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
             CreateUpdateCamNangDto>,
         ICamNangsAppService
     {
-        private readonly IBlobContainer<MediaContainer> _mediaContainer;
+        private readonly IMediaAppService _mediaAppService;
 
         public CamNangsAppService(
             IRepository<CamNang, Guid> repository,
-            IBlobContainer<MediaContainer> mediaContainer)
+            IMediaAppService mediaAppService)
             : base(repository)
         {
-            _mediaContainer = mediaContainer;
+            _mediaAppService = mediaAppService;
 
             GetPolicyName = VietlifeStorePermissions.CamNang.View;
             GetListPolicyName = VietlifeStorePermissions.CamNang.View;
@@ -40,10 +45,14 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
             DeletePolicyName = VietlifeStorePermissions.CamNang.Delete;
         }
 
+
         // ================= CREATE =================
         [Authorize(VietlifeStorePermissions.CamNang.Create)]
         public override async Task<CamNangDto> CreateAsync(CreateUpdateCamNangDto input)
         {
+            if (string.IsNullOrWhiteSpace(input.Anh))
+                throw new UserFriendlyException("Không thấy file ảnh");
+
             var entity = new CamNang
             {
                 Ten = input.Ten,
@@ -53,10 +62,9 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
                 TrangThai = input.TrangThai,
                 TitleSEO = input.TitleSEO,
                 Keyword = input.Keyword,
-                DescriptionSEO = input.DescriptionSEO
+                DescriptionSEO = input.DescriptionSEO,
+                Anh = input.Anh
             };
-
-            await SaveImageAsync(entity, input);
 
             var created = await Repository.InsertAsync(entity, autoSave: true);
             return MapToGetOutputDto(created);
@@ -67,7 +75,7 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
         public override async Task<CamNangDto> UpdateAsync(Guid id, CreateUpdateCamNangDto input)
         {
             var entity = await Repository.GetAsync(id);
-
+            var oldImage = entity.Anh;
             entity.Ten = input.Ten;
             entity.Slug = input.Slug;
             entity.Mota = input.Mota;
@@ -76,28 +84,67 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
             entity.TitleSEO = input.TitleSEO;
             entity.Keyword = input.Keyword;
             entity.DescriptionSEO = input.DescriptionSEO;
+            if (!string.IsNullOrWhiteSpace(input.Anh) && input.Anh != oldImage)
+            {
+                entity.Anh = input.Anh;
 
-            await SaveImageAsync(entity, input);
+                // ✅ Xóa ảnh cũ
+                if (!string.IsNullOrWhiteSpace(oldImage))
+                {
+                    try
+                    {
+                        await _mediaAppService.DeleteAsync(oldImage);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log nhưng không throw - không block update nếu xóa file thất bại
+                        Logger.LogWarning(ex, $"Không thể xóa ảnh cũ: {oldImage}");
+                    }
+                }
+            }
 
             await Repository.UpdateAsync(entity, autoSave: true);
             return MapToGetOutputDto(entity);
         }
 
+        [Authorize(VietlifeStorePermissions.CamNang.Delete)]
+        public override async Task DeleteAsync(Guid id)
+        {
+            var entity = await Repository.GetAsync(id);
+
+            if (!string.IsNullOrWhiteSpace(entity.Anh))
+            {
+                await _mediaAppService.DeleteAsync(entity.Anh);
+            }
+
+            await base.DeleteAsync(id);
+        }
         // ================= DELETE MULTIPLE =================
         [Authorize(VietlifeStorePermissions.CamNang.Delete)]
         public async Task DeleteMultipleAsync(IEnumerable<Guid> ids)
         {
-            await Repository.DeleteManyAsync(ids);
-            await UnitOfWorkManager.Current.SaveChangesAsync();
+            var list = await Repository.GetListAsync(x => ids.Contains(x.Id));
+
+            foreach (var item in list)
+            {
+                if (!string.IsNullOrWhiteSpace(item.Anh))
+                {
+                    await _mediaAppService.DeleteAsync(item.Anh);
+                }
+            }
+
+            await Repository.DeleteManyAsync(list);
         }
 
-        // ================= GET ALL =================
+
+        // ================= GET ALL ACTIVE =================
         [Authorize(VietlifeStorePermissions.CamNang.View)]
         public async Task<List<CamNangInListDto>> GetListAllAsync()
         {
             var list = await AsyncExecuter.ToListAsync(
                 (await Repository.GetQueryableAsync())
                     .Where(x => x.TrangThai)
+                    .OrderByDescending(x => x.CreationTime)
             );
 
             return ObjectMapper.Map<List<CamNang>, List<CamNangInListDto>>(list);
@@ -114,8 +161,10 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
             var totalCount = await AsyncExecuter.LongCountAsync(query);
 
             var items = await AsyncExecuter.ToListAsync(
-                query.Skip(input.SkipCount)
-                     .Take(input.MaxResultCount)
+                query
+                    .OrderByDescending(x => x.CreationTime)
+                    .Skip(input.SkipCount)
+                    .Take(input.MaxResultCount)
             );
 
             return new PagedResultDto<CamNangInListDto>(
@@ -124,36 +173,20 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
             );
         }
 
-        // ================= IMAGE =================
-        private async Task SaveImageAsync(CamNang entity, CreateUpdateCamNangDto input)
+        // ================= GET LATEST FOR HOME =================
+        [AllowAnonymous]
+        public async Task<List<CamNangInListDto>> GetLatestCamNangHomeAsync(int take = 4)
         {
-            if (string.IsNullOrWhiteSpace(input.AnhContent))
-                return;
+            var query = await Repository.GetQueryableAsync();
 
-            await SaveImageAsync(input.AnhName, input.AnhContent);
-            entity.Anh = input.AnhName;
-        }
+            var items = await AsyncExecuter.ToListAsync(
+                query
+                    .Where(x => x.TrangThai)
+                    .OrderByDescending(x => x.CreationTime)
+                    .Take(take)
+            );
 
-        private async Task SaveImageAsync(string fileName, string base64)
-        {
-            if (string.IsNullOrWhiteSpace(fileName))
-                return;
-
-            var regex = new Regex(@"^[\w/\:.-]+;base64,");
-            base64 = regex.Replace(base64, string.Empty);
-
-            var bytes = Convert.FromBase64String(base64);
-            await _mediaContainer.SaveAsync(fileName, bytes, overrideExisting: true);
-        }
-
-        // ================= GET IMAGE =================
-        public async Task<string?> GetImageAsync(string fileName)
-        {
-            if (string.IsNullOrWhiteSpace(fileName))
-                return null;
-
-            var bytes = await _mediaContainer.GetAllBytesOrNullAsync(fileName);
-            return bytes == null ? null : Convert.ToBase64String(bytes);
+            return ObjectMapper.Map<List<CamNang>, List<CamNangInListDto>>(items);
         }
     }
 }

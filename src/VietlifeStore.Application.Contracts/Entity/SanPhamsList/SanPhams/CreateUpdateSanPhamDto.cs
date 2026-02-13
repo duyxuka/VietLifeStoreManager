@@ -11,7 +11,7 @@ namespace VietlifeStore.Entity.SanPhamsList.SanPhams
     public class CreateUpdateSanPhamDto
     {
         public string Ten { get; set; } // Tên sản phẩm
-        public string Slug { get; set; }
+        public string? Slug { get; set; }
         public string MoTaNgan { get; set; } // Mô tả ngắn
         public string MoTa { get; set; } // Mô tả chi tiết
         public string HuongDanSuDung { get; set; } // Mô tả chi tiết
@@ -40,9 +40,8 @@ namespace VietlifeStore.Entity.SanPhamsList.SanPhams
         public List<CreateUpdateSanPhamBienTheDto> BienThes { get; set; } = new();
 
         // Ảnh
-        public string AnhDaiDienName { get; set; }
-        public string AnhDaiDienContent { get; set; }
-        public List<AnhUploadDto> AnhPhu { get; set; } = new();
+        public List<string> AnhPhu { get; set; } = new();
         public List<string> AnhPhuGiuLai { get; set; } = new List<string>();
+        public decimal? PhanTramKhuyenMai { get; set; }
     }
 }

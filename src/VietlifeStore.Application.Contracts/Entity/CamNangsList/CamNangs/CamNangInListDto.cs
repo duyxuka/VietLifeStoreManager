@@ -15,5 +15,6 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
         public string Anh { get; set; }
         public Guid DanhMucCamNangId { get; set; } // FK đến DanhMucCamNang
         public bool TrangThai { get; set; } = true; // Trạng thái hiển thị
+        public DateTime CreationTime { get; set; }
     }
 }

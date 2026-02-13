@@ -14,10 +14,13 @@ namespace VietlifeStore.Entity.SanPhamsList.SanPhams
         public decimal GiaKhuyenMai { get; set; } // Giá khuyen mãi (nếu có)
         public Guid DanhMucId { get; set; } // FK đến DanhMucSanPham
         public string Anh { get; set; } // Danh sách URL hình ảnh
+        public string Slug { get; set; }
+        public string MoTaNgan { get; set; } // Danh sách URL hình ảnh
         public bool TrangThai { get; set; } = true; // Trạng thái hiển thị
         public bool LaDatLich { get; set; } = false; // Sản phẩm có phải là dịch vụ đặt lịch không
         public DateTime? ThoiHanBatDau { get; set; }
         public DateTime? ThoiHanKetThuc { get; set; }
-        public string AnhDaiDienContent { get; set; }
+        public int? PhanTramGiamGia { get; set; }
+        public int? SoLuongDaBan { get; set; }
     }
 }

@@ -16,11 +16,5 @@ namespace VietlifeStore.Entity.SanPhamsList.DanhMucSanPhams
         public string TitleSEO { get; set; }
         public string Keyword { get; set; }
         public string DescriptionSEO { get; set; }
-
-        public string? AnhThumbnailName { get; set; }
-        public string? AnhThumbnailContent { get; set; }
-
-        public string? AnhBannerName { get; set; }
-        public string? AnhBannerContent { get; set; }
     }
 }
