@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using VietlifeStore.Entity.DonHangs;
 using VietlifeStore.Entity.LienHes;
 using VietlifeStore.Entity.MediaContainers;
+using VietlifeStore.Entity.SanPhamsList.AnhSanPhams;
 using VietlifeStore.Entity.SanPhamsList.SanPhamBienThes;
 using VietlifeStore.Entity.SanPhamsList.SanPhams;
 using VietlifeStore.Entity.SanPhamsList.ThuocTinhs;
@@ -35,6 +36,7 @@ namespace VietlifeStore.Entity.SanPhams
         private readonly IMediaAppService _mediaAppService;
         private readonly IRepository<ChiTietDonHang, Guid> _chiTietDonHangRepository;
         private readonly IRepository<DanhMucSanPham, Guid> _danhMucRepo;
+        private readonly IRepository<QuaTang, Guid> _quaTangRepo;
 
         public SanPhamsAppService(
         IRepository<SanPham, Guid> repository,
@@ -45,6 +47,7 @@ namespace VietlifeStore.Entity.SanPhams
         IRepository<GiaTriThuocTinh, Guid> giaTriRepo,
         IRepository<ChiTietDonHang, Guid> chiTietDonHangRepository,
         IRepository<DanhMucSanPham, Guid> danhMucRepo,
+        IRepository<QuaTang, Guid> quaTangRepo,
         IMediaAppService mediaAppService)
         : base(repository)
         {
@@ -56,17 +59,48 @@ namespace VietlifeStore.Entity.SanPhams
             _chiTietDonHangRepository = chiTietDonHangRepository;
             _danhMucRepo = danhMucRepo;
             _mediaAppService = mediaAppService;
+            _quaTangRepo = quaTangRepo;
         }
 
 
         public override async Task<SanPhamDto> GetAsync(Guid id)
         {
-            var entity = await Repository.GetAsync(id);
-            var dto = ObjectMapper.Map<SanPham, SanPhamDto>(entity);
+            var sanPhamQueryable = await Repository.GetQueryableAsync();
+            var danhMucQueryable = await _danhMucRepo.GetQueryableAsync();
+            var quaTangQueryable = await _quaTangRepo.GetQueryableAsync();
+
+            var query =
+                from sp in sanPhamQueryable
+                join dm in danhMucQueryable
+                    on sp.DanhMucId equals dm.Id
+                join qt in quaTangQueryable
+                    on sp.QuaTangId equals qt.Id into giftGroup
+                from gift in giftGroup.DefaultIfEmpty()
+                where sp.Id == id
+                select new
+                {
+                    SanPham = sp,
+                    DanhMuc = dm,
+                    QuaTang = gift
+                };
+
+            var item = await AsyncExecuter.FirstOrDefaultAsync(query);
+
+            if (item == null)
+                throw new UserFriendlyException("Không tìm thấy sản phẩm");
+
+            var dto = ObjectMapper.Map<SanPham, SanPhamDto>(item.SanPham);
+
+            dto.DanhMucSlug = item.DanhMuc.Slug;
+            dto.QuaTangTen = item.QuaTang?.Ten;
+            dto.QuaTangGia = item.QuaTang?.Gia;
+            dto.PhanTramGiamGia = TinhPhanTramGiam(dto.Gia, dto.GiaKhuyenMai);
+
             var anhPhuList = await _anhRepo.GetListAsync(x => x.SanPhamId == id);
             dto.AnhPhu = anhPhuList.Select(x => x.Anh).ToList();
             var bienThes = await _bienTheRepo.GetListAsync(x => x.SanPhamId == id);
             var bienTheIds = bienThes.Select(x => x.Id).ToList();
+
             if (bienTheIds.Any())
             {
                 var mappings = await _bienTheThuocTinhRepo.GetListAsync(x => bienTheIds.Contains(x.SanPhamBienTheId));
@@ -394,67 +428,67 @@ namespace VietlifeStore.Entity.SanPhams
             return string.Join("|", gtIds);
         }
 
-        private async Task SyncVariantsDirectlyAsync(
-            Guid sanPhamId,
-            List<CreateUpdateSanPhamBienTheDto> inputBienThes)
-        {
-            var existing = await _bienTheRepo.GetListAsync(x => x.SanPhamId == sanPhamId);
-            var existingDict = existing.ToDictionary(x => x.Id);
-            var inputIds = inputBienThes
-                .Where(x => x.Id.HasValue)
-                .Select(x => x.Id.Value)
-                .ToHashSet();
-            foreach (var input in inputBienThes)
-            {
-                if (input.Id.HasValue && existingDict.TryGetValue(input.Id.Value, out var exist))
-                {
-                    exist.Ten = input.Ten?.Trim() ?? exist.Ten;
-                    exist.Gia = input.Gia;
-                    exist.GiaKhuyenMai = input.GiaKhuyenMai ?? 0;
-                    await _bienTheRepo.UpdateAsync(exist);
-                    if (input.SanPhamBienTheThuocTinhDtos?.Any() == true)
-                    {
-                        await _bienTheThuocTinhRepo.DeleteAsync(x => x.SanPhamBienTheId == exist.Id);
-                        foreach (var map in input.SanPhamBienTheThuocTinhDtos)
-                        {
-                            await _bienTheThuocTinhRepo.InsertAsync(new SanPhamBienTheThuocTinh
-                            {
-                                SanPhamBienTheId = exist.Id,
-                                GiaTriThuocTinhId = map.GiaTriThuocTinhId
-                            }, autoSave: true);
-                        }
-                    }
-                }
-                else
-                {
-                    var newVariant = await _bienTheRepo.InsertAsync(new SanPhamBienThe
-                    {
-                        SanPhamId = sanPhamId,
-                        Ten = input.Ten?.Trim() ?? "Mới",
-                        Gia = input.Gia,
-                        GiaKhuyenMai = input.GiaKhuyenMai ?? 0
-                    }, autoSave: true);
-                    if (input.SanPhamBienTheThuocTinhDtos?.Any() == true)
-                    {
-                        foreach (var map in input.SanPhamBienTheThuocTinhDtos)
-                        {
-                            await _bienTheThuocTinhRepo.InsertAsync(new SanPhamBienTheThuocTinh
-                            {
-                                SanPhamBienTheId = newVariant.Id,
-                                GiaTriThuocTinhId = map.GiaTriThuocTinhId
-                            }, autoSave: true);
-                        }
-                    }
-                }
-            }
-            var toDelete = existing.Where(x => !inputIds.Contains(x.Id)).ToList();
-            if (toDelete.Any())
-            {
-                var deleteIds = toDelete.Select(x => x.Id).ToList();
-                await _bienTheThuocTinhRepo.DeleteAsync(x => deleteIds.Contains(x.SanPhamBienTheId));
-                await _bienTheRepo.DeleteManyAsync(toDelete);
-            }
-        }
+        //private async Task SyncVariantsDirectlyAsync(
+        //    Guid sanPhamId,
+        //    List<CreateUpdateSanPhamBienTheDto> inputBienThes)
+        //{
+        //    var existing = await _bienTheRepo.GetListAsync(x => x.SanPhamId == sanPhamId);
+        //    var existingDict = existing.ToDictionary(x => x.Id);
+        //    var inputIds = inputBienThes
+        //        .Where(x => x.Id.HasValue)
+        //        .Select(x => x.Id.Value)
+        //        .ToHashSet();
+        //    foreach (var input in inputBienThes)
+        //    {
+        //        if (input.Id.HasValue && existingDict.TryGetValue(input.Id.Value, out var exist))
+        //        {
+        //            exist.Ten = input.Ten?.Trim() ?? exist.Ten;
+        //            exist.Gia = input.Gia;
+        //            exist.GiaKhuyenMai = input.GiaKhuyenMai ?? 0;
+        //            await _bienTheRepo.UpdateAsync(exist);
+        //            if (input.SanPhamBienTheThuocTinhDtos?.Any() == true)
+        //            {
+        //                await _bienTheThuocTinhRepo.DeleteAsync(x => x.SanPhamBienTheId == exist.Id);
+        //                foreach (var map in input.SanPhamBienTheThuocTinhDtos)
+        //                {
+        //                    await _bienTheThuocTinhRepo.InsertAsync(new SanPhamBienTheThuocTinh
+        //                    {
+        //                        SanPhamBienTheId = exist.Id,
+        //                        GiaTriThuocTinhId = map.GiaTriThuocTinhId
+        //                    }, autoSave: true);
+        //                }
+        //            }
+        //        }
+        //        else
+        //        {
+        //            var newVariant = await _bienTheRepo.InsertAsync(new SanPhamBienThe
+        //            {
+        //                SanPhamId = sanPhamId,
+        //                Ten = input.Ten?.Trim() ?? "Mới",
+        //                Gia = input.Gia,
+        //                GiaKhuyenMai = input.GiaKhuyenMai ?? 0
+        //            }, autoSave: true);
+        //            if (input.SanPhamBienTheThuocTinhDtos?.Any() == true)
+        //            {
+        //                foreach (var map in input.SanPhamBienTheThuocTinhDtos)
+        //                {
+        //                    await _bienTheThuocTinhRepo.InsertAsync(new SanPhamBienTheThuocTinh
+        //                    {
+        //                        SanPhamBienTheId = newVariant.Id,
+        //                        GiaTriThuocTinhId = map.GiaTriThuocTinhId
+        //                    }, autoSave: true);
+        //                }
+        //            }
+        //        }
+        //    }
+        //    var toDelete = existing.Where(x => !inputIds.Contains(x.Id)).ToList();
+        //    if (toDelete.Any())
+        //    {
+        //        var deleteIds = toDelete.Select(x => x.Id).ToList();
+        //        await _bienTheThuocTinhRepo.DeleteAsync(x => deleteIds.Contains(x.SanPhamBienTheId));
+        //        await _bienTheRepo.DeleteManyAsync(toDelete);
+        //    }
+        //}
 
         private List<List<GiaTriThuocTinh>> GenerateCombinations(List<List<GiaTriThuocTinh>> lists)
         {
@@ -498,35 +532,71 @@ namespace VietlifeStore.Entity.SanPhams
         [AllowAnonymous]
         public async Task<PagedResultDto<SanPhamInListDto>> GetListFilterAsync(BaseListFilterDto input)
         {
-            var query = (await Repository.GetQueryableAsync())
-                .Where(x => x.TrangThai);
+            var sanPhamQueryable = await Repository.GetQueryableAsync();
+            var danhMucQueryable = await _danhMucRepo.GetQueryableAsync();
+            var quaTangQueryable = await _quaTangRepo.GetQueryableAsync();
+            var bienTheQueryable = await _bienTheRepo.GetQueryableAsync();
+
+            var query =
+                 from sp in sanPhamQueryable
+                 join dm in danhMucQueryable
+                     on sp.DanhMucId equals dm.Id
+                 join qt in quaTangQueryable
+                     on sp.QuaTangId equals qt.Id into giftGroup
+                 from gift in giftGroup.DefaultIfEmpty()
+                 join bt in bienTheQueryable
+                     on sp.Id equals bt.SanPhamId into variantGroup
+                 select new
+                 {
+                     SanPham = sp,
+                     DanhMuc = dm,
+                     QuaTang = gift,
+                     HasVariants = variantGroup.Any()
+                 };
+
             if (!string.IsNullOrWhiteSpace(input.DanhMucSlug))
-            {
-                var danhMuc = await _danhMucRepo.FirstOrDefaultAsync(x => x.Slug == input.DanhMucSlug);
-                if (danhMuc != null)
-                    query = query.Where(x => x.DanhMucId == danhMuc.Id);
-            }
+                query = query.Where(x => x.DanhMuc.Slug == input.DanhMucSlug);
+
             if (!string.IsNullOrWhiteSpace(input.Keyword))
-            {
-                query = query.Where(x => x.Ten.Contains(input.Keyword) || x.Slug.Contains(input.Keyword));
-            }
+                query = query.Where(x =>
+                    x.SanPham.Ten.Contains(input.Keyword) ||
+                    x.SanPham.Slug.Contains(input.Keyword));
+
             query = input.Sort switch
             {
-                "name_asc" => query.OrderBy(x => x.Ten),
-                "name_desc" => query.OrderByDescending(x => x.Ten),
-                "price_asc" => query.OrderBy(x => x.GiaKhuyenMai > 0 ? x.GiaKhuyenMai : x.Gia),
-                "price_desc" => query.OrderByDescending(x => x.GiaKhuyenMai > 0 ? x.GiaKhuyenMai : x.Gia),
-                "oldest" => query.OrderBy(x => x.CreationTime),
-                _ => query.OrderByDescending(x => x.CreationTime)
+                "name_asc" => query.OrderBy(x => x.SanPham.Ten),
+                "name_desc" => query.OrderByDescending(x => x.SanPham.Ten),
+                "price_asc" => query.OrderBy(x =>
+                    x.SanPham.GiaKhuyenMai > 0 ? x.SanPham.GiaKhuyenMai : x.SanPham.Gia),
+                "price_desc" => query.OrderByDescending(x =>
+                    x.SanPham.GiaKhuyenMai > 0 ? x.SanPham.GiaKhuyenMai : x.SanPham.Gia),
+                "oldest" => query.OrderBy(x => x.SanPham.CreationTime),
+                _ => query.OrderByDescending(x => x.SanPham.CreationTime)
             };
+
             var total = await AsyncExecuter.LongCountAsync(query);
-            var items = await AsyncExecuter.ToListAsync(query.Skip(input.SkipCount).Take(input.MaxResultCount));
-            var dtos = ObjectMapper.Map<List<SanPham>, List<SanPhamInListDto>>(items);
-            foreach (var dto in dtos)
+
+            var items = await AsyncExecuter.ToListAsync(
+                query.Skip(input.SkipCount).Take(input.MaxResultCount)
+            );
+
+            var result = items.Select(x => new SanPhamInListDto
             {
-                dto.PhanTramGiamGia = TinhPhanTramGiam(dto.Gia, dto.GiaKhuyenMai);
-            }
-            return new PagedResultDto<SanPhamInListDto>(total, dtos);
+                Id = x.SanPham.Id,
+                Ten = x.SanPham.Ten,
+                Slug = x.SanPham.Slug,
+                Gia = x.SanPham.Gia,
+                GiaKhuyenMai = x.SanPham.GiaKhuyenMai,
+                Anh = x.SanPham.Anh,
+                MoTaNgan = x.SanPham.MoTaNgan,
+                DanhMucSlug = x.DanhMuc.Slug,
+                QuaTangTen = x.QuaTang?.Ten,
+                QuaTangGia = x.QuaTang?.Gia,
+                HasVariants = x.HasVariants,
+                PhanTramGiamGia = TinhPhanTramGiam(x.SanPham.Gia, x.SanPham.GiaKhuyenMai)
+            }).ToList();
+
+            return new PagedResultDto<SanPhamInListDto>(total, result);
         }
 
         public async Task<List<SanPhamInListDto>> GetListAllAsync()
@@ -553,22 +623,52 @@ namespace VietlifeStore.Entity.SanPhams
         public async Task<List<SanPhamInListDto>> GetByDanhMucAsync(string slug)
         {
             if (string.IsNullOrWhiteSpace(slug))
-            {
                 throw new UserFriendlyException("Slug danh mục không hợp lệ");
-            }
-            var danhMuc = await _danhMucRepo.FirstOrDefaultAsync(x => x.Slug == slug);
-            if (danhMuc == null)
+
+            var sanPhamQueryable = await Repository.GetQueryableAsync();
+            var danhMucQueryable = await _danhMucRepo.GetQueryableAsync();
+            var quaTangQueryable = await _quaTangRepo.GetQueryableAsync();
+            var bienTheQueryable = await _bienTheRepo.GetQueryableAsync();
+
+            var query =
+                from sp in sanPhamQueryable
+                join dm in danhMucQueryable
+                    on sp.DanhMucId equals dm.Id
+                join qt in quaTangQueryable
+                    on sp.QuaTangId equals qt.Id into giftGroup
+                from gift in giftGroup.DefaultIfEmpty()
+                join bt in bienTheQueryable
+                    on sp.Id equals bt.SanPhamId into variantGroup
+                where dm.Slug == slug && sp.TrangThai
+                select new
+                {
+                    SanPham = sp,
+                    DanhMuc = dm,
+                    QuaTang = gift,
+                    HasVariants = variantGroup.Any()
+                };
+
+            var items = await AsyncExecuter.ToListAsync(query);
+
+            var result = items.Select(x => new SanPhamInListDto
             {
-                throw new UserFriendlyException("Danh mục không tồn tại");
-            }
-            var entities = await Repository.GetListAsync(
-                x => x.DanhMucId == danhMuc.Id && x.TrangThai
-            );
-            var result = ObjectMapper.Map<List<SanPham>, List<SanPhamInListDto>>(entities);
-            foreach (var item in result)
-            {
-                item.PhanTramGiamGia = TinhPhanTramGiam(item.Gia, item.GiaKhuyenMai);
-            }
+                Id = x.SanPham.Id,
+                Ten = x.SanPham.Ten,
+                Slug = x.SanPham.Slug,
+                Gia = x.SanPham.Gia,
+                GiaKhuyenMai = x.SanPham.GiaKhuyenMai,
+                Anh = x.SanPham.Anh,
+                MoTaNgan = x.SanPham.MoTaNgan,
+                DanhMucSlug = x.DanhMuc.Slug,
+                QuaTangTen = x.QuaTang?.Ten,
+                QuaTangGia = x.QuaTang?.Gia,
+                HasVariants = x.HasVariants,
+                PhanTramGiamGia = TinhPhanTramGiam(
+                    x.SanPham.Gia,
+                    x.SanPham.GiaKhuyenMai
+                )
+            }).ToList();
+
             return result;
         }
 
@@ -576,8 +676,12 @@ namespace VietlifeStore.Entity.SanPhams
         public async Task<List<SanPhamInListDto>> GetTopBanChayAsync(int top = 6)
         {
             if (top <= 0) top = 6;
+
             var chiTietQuery = await _chiTietDonHangRepository.GetQueryableAsync();
-            chiTietQuery = chiTietQuery.Where(ct => ct.DonHang.TrangThai == 3);
+
+            chiTietQuery = chiTietQuery
+                .Where(ct => ct.DonHang.TrangThai == 3);
+
             var banChayQuery = chiTietQuery
                 .GroupBy(ct => ct.SanPhamId)
                 .Select(g => new
@@ -587,23 +691,62 @@ namespace VietlifeStore.Entity.SanPhams
                 })
                 .OrderByDescending(x => x.TongSoLuong)
                 .Take(top);
+
             var topSanPhamIds = await AsyncExecuter
                 .ToListAsync(banChayQuery.Select(x => x.SanPhamId));
+
             if (!topSanPhamIds.Any())
-            {
                 return new List<SanPhamInListDto>();
-            }
-            var products = await Repository.GetListAsync(x =>
-                topSanPhamIds.Contains(x.Id) && x.TrangThai);
-            var dtos = ObjectMapper.Map<List<SanPham>, List<SanPhamInListDto>>(products);
-            foreach (var dto in dtos)
+
+
+            // 🔥 LẤY QUERYABLE
+            var sanPhamQueryable = await Repository.GetQueryableAsync();
+            var quaTangQueryable = await _quaTangRepo.GetQueryableAsync();
+            var bienTheQueryable = await _bienTheRepo.GetQueryableAsync();
+
+            var query =
+                from sp in sanPhamQueryable
+                join qt in quaTangQueryable
+                    on sp.QuaTangId equals qt.Id into giftGroup
+                from gift in giftGroup.DefaultIfEmpty()
+
+                    // LEFT JOIN BIẾN THỂ
+                join bt in bienTheQueryable
+                    on sp.Id equals bt.SanPhamId into variantGroup
+
+                where topSanPhamIds.Contains(sp.Id)
+
+                select new
+                {
+                    SanPham = sp,
+                    QuaTang = gift,
+                    HasVariants = variantGroup.Any()
+                };
+
+            var items = await AsyncExecuter.ToListAsync(query);
+
+            // Map DTO
+            var dtos = items.Select(x =>
             {
+                var dto = ObjectMapper.Map<SanPham, SanPhamInListDto>(x.SanPham);
+
+                dto.QuaTangTen = x.QuaTang?.Ten;
+                dto.QuaTangGia = x.QuaTang?.Gia;
+
+                // ✅ THÊM HAS VARIANTS
+                dto.HasVariants = x.HasVariants;
+
                 dto.PhanTramGiamGia = TinhPhanTramGiam(dto.Gia, dto.GiaKhuyenMai);
-            }
+
+                return dto;
+            }).ToList();
+
+            // Giữ đúng thứ tự top bán chạy
             var result = topSanPhamIds
                 .Select(id => dtos.FirstOrDefault(p => p.Id == id))
                 .Where(p => p != null)
                 .ToList();
+
             return result;
         }
 
@@ -614,16 +757,44 @@ namespace VietlifeStore.Entity.SanPhams
             {
                 throw new UserFriendlyException("Slug không hợp lệ");
             }
-            var entity = await Repository.FirstOrDefaultAsync(x =>
-                x.Slug == slug && x.TrangThai);
-            if (entity == null)
-            {
+            var sanPhamQueryable = await Repository.GetQueryableAsync();
+            var danhMucQueryable = await _danhMucRepo.GetQueryableAsync();
+            var quaTangQueryable = await _quaTangRepo.GetQueryableAsync();
+
+            var query =
+                from sp in sanPhamQueryable
+                join dm in danhMucQueryable
+                    on sp.DanhMucId equals dm.Id
+                join qt in quaTangQueryable
+                    on sp.QuaTangId equals qt.Id into giftGroup
+                from gift in giftGroup.DefaultIfEmpty()
+                where sp.Slug == slug
+                select new
+                {
+                    SanPham = sp,
+                    DanhMuc = dm,
+                    QuaTang = gift
+                };
+
+            var item = await AsyncExecuter.FirstOrDefaultAsync(query);
+
+            if (item == null)
                 throw new UserFriendlyException("Sản phẩm không tồn tại");
-            }
-            var dto = ObjectMapper.Map<SanPham, SanPhamDto>(entity);
-            
+
+            var dto = ObjectMapper.Map<SanPham, SanPhamDto>(item.SanPham);
+
+            dto.DanhMucSlug = item.DanhMuc.Slug;
+            dto.QuaTangTen = item.QuaTang?.Ten;
+            dto.QuaTangGia = item.QuaTang?.Gia;
             dto.PhanTramGiamGia = TinhPhanTramGiam(dto.Gia, dto.GiaKhuyenMai);
-            var bienThes = await _bienTheRepo.GetListAsync(x => x.SanPhamId == entity.Id);
+
+            var danhMuc = await _danhMucRepo.GetAsync(dto.DanhMucId);
+            dto.DanhMucSlug = danhMuc.Slug;
+            dto.PhanTramGiamGia = TinhPhanTramGiam(dto.Gia, dto.GiaKhuyenMai);
+            var anhPhus = await _anhRepo.GetListAsync(x => x.SanPhamId == dto.Id);
+            dto.AnhPhu = anhPhus.Select(a => a.Anh).ToList();
+
+            var bienThes = await _bienTheRepo.GetListAsync(x => x.SanPhamId == dto.Id);
             dto.BienThes = bienThes.Select(b => new SanPhamBienTheDto
             {
                 Id = b.Id,

@@ -21,6 +21,9 @@ namespace VietlifeStore.Entity.SanPhamsList.SanPhams
         public decimal Gia { get; set; } // Giá gốc
         public decimal GiaKhuyenMai { get; set; } // Giá khuyen mãi (nếu có)
         public Guid DanhMucId { get; set; } // FK đến DanhMucSanPham
+        public string DanhMucSlug { get; set; }
+        public string? QuaTangTen { get; set; }
+        public decimal? QuaTangGia { get; set; }
         public Guid QuaTangId { get; set; } // FK đến QuaTang
         public string Anh { get; set; } // Danh sách URL hình ảnh
         public int ThuTu { get; set; }

@@ -11,30 +11,34 @@ using Volo.Abp.MultiTenancy;
 using Volo.Abp;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 
 namespace VietlifeStore.System.Users
 {
     public class AccountAppService : ApplicationService
     {
+        private readonly IdentityUserManager _identityUserManager;
         private readonly TaiKhoanManager _taiKhoanManager;
         private readonly IIdentityUserRepository _userRepository;
         private readonly IGuidGenerator _guidGenerator;
         private readonly ICurrentTenant _currentTenant;
         private readonly ILookupNormalizer LookupNormalizer;
 
-
         public AccountAppService(
             TaiKhoanManager taiKhoanManager,
             IIdentityUserRepository userRepository,
             IGuidGenerator guidGenerator,
             ICurrentTenant currentTenant,
-            ILookupNormalizer lookupNormalizer)
+            ILookupNormalizer lookupNormalizer,
+            IdentityUserManager identityUserManager)
         {
             _taiKhoanManager = taiKhoanManager;
             _userRepository = userRepository;
             _guidGenerator = guidGenerator;
             _currentTenant = currentTenant;
             LookupNormalizer = lookupNormalizer;
+            _identityUserManager = identityUserManager;
         }
 
         /// <summary>
@@ -76,6 +80,30 @@ namespace VietlifeStore.System.Users
                 .CheckErrors();
 
             await _taiKhoanManager.AddToRoleAsync(user, "Customer");
+        }
+
+        [AllowAnonymous]
+        [HttpGet]
+        public async Task<string> ResolveUserNameAsync(string emailOrPhone)
+        {
+            if (string.IsNullOrWhiteSpace(emailOrPhone))
+                throw new UserFriendlyException("Vui lòng nhập Email hoặc SĐT");
+
+            IdentityUser user = null;
+
+            if (emailOrPhone.Contains("@"))
+            {
+                user = await _identityUserManager.FindByEmailAsync(emailOrPhone);
+            }
+            else
+            {
+                user = (await _userRepository.GetListAsync()).FirstOrDefault(x => x.PhoneNumber == emailOrPhone);
+            }
+
+            if (user == null)
+                throw new UserFriendlyException("Tài khoản không tồn tại");
+
+            return user.UserName;
         }
     }
 }

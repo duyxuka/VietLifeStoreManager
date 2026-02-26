@@ -165,33 +165,27 @@ namespace VietlifeStore.Entity.SanPhams
         [AllowAnonymous]
         public async Task<List<DanhMucSanPhamInListDto>> GetListAllAsync()
         {
-            var query = (await Repository.GetQueryableAsync())
-                .Where(x => x.TrangThai);
+            var danhMucQueryable = await Repository.GetQueryableAsync();
+            var sanPhamQueryable = await _sanPhamRepository.GetQueryableAsync();
 
-            var entities = await AsyncExecuter.ToListAsync(query);
+            var query =
+                from dm in danhMucQueryable
+                where dm.TrangThai
+                join sp in sanPhamQueryable
+                    on dm.Id equals sp.DanhMucId into sanPhamGroup
+                select new DanhMucSanPhamInListDto
+                {
+                    Id = dm.Id,
+                    Ten = dm.Ten,
+                    Slug = dm.Slug,
+                    AnhThumbnail = dm.AnhThumbnail,
+                    AnhBanner = dm.AnhBanner,
+                    TrangThai = dm.TrangThai,
+                    SoLuongSanPham = sanPhamGroup.Count(x => x.TrangThai)
+                };
 
-            var result = ObjectMapper.Map<
-                List<DanhMucSanPham>,
-                List<DanhMucSanPhamInListDto>
-            >(entities);
-
-            var sanPhamQuery = (await _sanPhamRepository.GetQueryableAsync())
-                .Where(x => x.TrangThai);
-
-            var sanPhamCounts = await AsyncExecuter.ToListAsync(
-                sanPhamQuery
-                    .GroupBy(x => x.DanhMucId)
-                    .Select(g => new
-                    {
-                        DanhMucId = g.Key,
-                        Count = g.Count()
-                    })
-            );
-
-            return result;
+            return await AsyncExecuter.ToListAsync(query);
         }
-
-
 
         // ================= FILTER + PAGING =================
         [Authorize(VietlifeStorePermissions.DanhMucSanPham.View)]

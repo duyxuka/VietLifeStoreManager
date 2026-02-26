@@ -105,5 +105,17 @@ namespace VietlifeStore.Entity.ChinhSachs
                 ObjectMapper.Map<List<ChinhSach>, List<ChinhSachInListDto>>(items)
             );
         }
+
+        [AllowAnonymous]
+        public async Task<List<ChinhSachInListDto>> GetByDanhMucIdAsync(Guid danhMucId)
+        {
+            var list = await AsyncExecuter.ToListAsync(
+                (await Repository.GetQueryableAsync())
+                    .Where(x => x.DanhMucChinhSachId == danhMucId && x.TrangThai)
+                    .OrderByDescending(x => x.CreationTime)
+            );
+
+            return ObjectMapper.Map<List<ChinhSach>, List<ChinhSachInListDto>>(list);
+        }
     }
 }

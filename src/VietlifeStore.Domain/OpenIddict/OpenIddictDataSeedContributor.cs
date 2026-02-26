@@ -74,6 +74,7 @@ public class OpenIddictDataSeedContributor : IDataSeedContributor, ITransientDep
             OpenIddictConstants.Permissions.Scopes.Phone,
             OpenIddictConstants.Permissions.Scopes.Profile,
             OpenIddictConstants.Permissions.Scopes.Roles,
+            OpenIddictConstants.Scopes.OfflineAccess,
             "VietlifeStore"
         };
 
@@ -104,12 +105,6 @@ public class OpenIddictDataSeedContributor : IDataSeedContributor, ITransientDep
                 logoUri: "/images/clients/angular.svg"
             );
         }
-
-        
-        
-
-
-
 
         // Swagger Client
         var swaggerClientId = configurationSection["VietlifeStore_Swagger:ClientId"];

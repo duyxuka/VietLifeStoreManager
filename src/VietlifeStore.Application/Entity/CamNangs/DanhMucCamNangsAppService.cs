@@ -21,8 +21,10 @@ namespace VietlifeStore.Entity.CamNangs
             CreateUpdateDanhMucCamNangDto>,
         IDanhMucCamNangsAppService
     {
+        private readonly IRepository<CamNang, Guid> _camNangRepo;
         public DanhMucCamNangsAppService(
-            IRepository<DanhMucCamNang, Guid> repository)
+            IRepository<DanhMucCamNang, Guid> repository,
+            IRepository<CamNang, Guid> camNangRepo)
             : base(repository)
         {
             GetPolicyName = VietlifeStorePermissions.CamNang.View;
@@ -30,6 +32,7 @@ namespace VietlifeStore.Entity.CamNangs
             CreatePolicyName = VietlifeStorePermissions.CamNang.Create;
             UpdatePolicyName = VietlifeStorePermissions.CamNang.Update;
             DeletePolicyName = VietlifeStorePermissions.CamNang.Delete;
+            _camNangRepo = camNangRepo;
         }
 
         // ================= CREATE =================
@@ -76,16 +79,26 @@ namespace VietlifeStore.Entity.CamNangs
         }
 
         // ================= GET ALL ACTIVE =================
-        [Authorize(VietlifeStorePermissions.CamNang.View)]
+        [AllowAnonymous]
         public async Task<List<DanhMucCamNangInListDto>> GetListAllAsync()
         {
-            var list = await AsyncExecuter.ToListAsync(
-                (await Repository.GetQueryableAsync())
-                    .Where(x => x.TrangThai)
-                    .OrderByDescending(x => x.CreationTime)
-            );
+            var danhMucQueryable = await Repository.GetQueryableAsync();
+            var camNangQueryable = await _camNangRepo.GetQueryableAsync(); // cần inject repo
 
-            return ObjectMapper.Map<List<DanhMucCamNang>, List<DanhMucCamNangInListDto>>(list);
+            var query =
+                from dm in danhMucQueryable
+                where dm.TrangThai
+                join cn in camNangQueryable
+                    on dm.Id equals cn.DanhMucCamNangId into camNangGroup
+                select new DanhMucCamNangInListDto
+                {
+                    Id = dm.Id,
+                    Ten = dm.Ten,
+                    Slug = dm.Slug,
+                    SoLuongCamNang = camNangGroup.Count(x => x.TrangThai)
+                };
+
+            return await AsyncExecuter.ToListAsync(query);
         }
 
         // ================= FILTER + PAGING =================

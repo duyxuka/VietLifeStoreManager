@@ -76,7 +76,7 @@ namespace VietlifeStore.Entity.ChinhSachs
         }
 
         // ================= GET ALL ACTIVE =================
-        [Authorize(VietlifeStorePermissions.DanhMucChinhSach.View)]
+        [AllowAnonymous]
         public async Task<List<DanhMucChinhSachInListDto>> GetListAllAsync()
         {
             var list = await AsyncExecuter.ToListAsync(

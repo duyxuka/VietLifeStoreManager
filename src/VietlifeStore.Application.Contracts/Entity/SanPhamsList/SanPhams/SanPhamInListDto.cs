@@ -22,5 +22,9 @@ namespace VietlifeStore.Entity.SanPhamsList.SanPhams
         public DateTime? ThoiHanKetThuc { get; set; }
         public int? PhanTramGiamGia { get; set; }
         public int? SoLuongDaBan { get; set; }
+        public string? DanhMucSlug { get; set; }
+        public string? QuaTangTen { get; set; }
+        public decimal? QuaTangGia { get; set; }
+        public bool HasVariants { get; set; }
     }
 }
