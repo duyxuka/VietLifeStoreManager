@@ -111,6 +111,12 @@
     "Permission:ThuocTinh.View": "View attributes",
     "Permission:ThuocTinh.Create": "Create attribute",
     "Permission:ThuocTinh.Update": "Update attribute",
-    "Permission:ThuocTinh.Delete": "Delete attribute"
+    "Permission:ThuocTinh.Delete": "Delete attribute",
+
+    "Permission:SocialVideo": "Social video",
+    "Permission:SocialVideo.View": "View social videos",
+    "Permission:SocialVideo.Create": "Create social video",
+    "Permission:SocialVideo.Update": "Update social video",
+    "Permission:SocialVideo.Delete": "Delete social video"
   }
 }

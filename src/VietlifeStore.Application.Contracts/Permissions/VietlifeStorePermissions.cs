@@ -162,4 +162,12 @@ public static class VietlifeStorePermissions
         public const string Update = Default + ".Update";
         public const string Delete = Default + ".Delete";
     }
+    public static class SocialVideo
+    {
+        public const string Default = VietlifeStoreGroupName + ".SocialVideo";
+        public const string View = Default + ".View";
+        public const string Create = Default + ".Create";
+        public const string Update = Default + ".Update";
+        public const string Delete = Default + ".Delete";
+    }
 }

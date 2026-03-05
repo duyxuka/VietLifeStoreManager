@@ -111,6 +111,12 @@
     "Permission:ThuocTinh.View": "Xem thuộc tính",
     "Permission:ThuocTinh.Create": "Tạo thuộc tính",
     "Permission:ThuocTinh.Update": "Cập nhật thuộc tính",
-    "Permission:ThuocTinh.Delete": "Xóa thuộc tính"
+    "Permission:ThuocTinh.Delete": "Xóa thuộc tính",
+
+    "Permission:SocialVideo": "Video xã hội",
+    "Permission:SocialVideo.View": "Xem video xã hội",
+    "Permission:SocialVideo.Create": "Tạo video xã hội",
+    "Permission:SocialVideo.Update": "Cập nhật video xã hội",
+    "Permission:SocialVideo.Delete": "Xóa video xã hội"
   }
 }

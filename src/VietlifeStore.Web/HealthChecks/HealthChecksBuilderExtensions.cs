@@ -12,32 +12,52 @@ public static class HealthChecksBuilderExtensions
 {
     public static void AddVietlifeStoreHealthChecks(this IServiceCollection services)
     {
-        // Add your health checks here
-        var healthChecksBuilder = services.AddHealthChecks();
-        healthChecksBuilder.AddCheck<VietlifeStoreDatabaseCheck>("VietlifeStore DbContext Check", tags: new string[] { "database" });
-
-        services.ConfigureHealthCheckEndpoint("/health-status");
-
         var configuration = services.GetConfiguration();
-        var healthCheckUrl = configuration["App:HealthCheckUrl"];
 
-        if (string.IsNullOrEmpty(healthCheckUrl))
+        // ===== LẤY SelfUrl =====
+        var appSelfUrl = configuration["App:SelfUrl"] ?? "http://localhost:8099";
+
+        // ===== LẤY HealthCheckUrl =====
+        var healthCheckPath = configuration["App:HealthCheckUrl"] ?? "/health-status";
+
+        // Nếu cấu hình là full URL thì tách lấy path
+        if (healthCheckPath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
         {
-            healthCheckUrl = "/health-status";
+            var uri = new Uri(healthCheckPath);
+            healthCheckPath = uri.AbsolutePath;
         }
+
+        // ===== REGISTER HEALTH CHECK =====
+        var healthChecksBuilder = services.AddHealthChecks();
+        healthChecksBuilder.AddCheck<VietlifeStoreDatabaseCheck>(
+            "VietlifeStore DbContext Check",
+            tags: new[] { "database" }
+        );
+
+        // ===== MAP HEALTH CHECK ENDPOINT =====
+        services.ConfigureHealthCheckEndpoint(healthCheckPath);
+
+        // ===== BUILD FULL URL CHO UI =====
+        var fullHealthCheckUrl = $"{appSelfUrl.TrimEnd('/')}{healthCheckPath}";
+
+        // Nếu có cấu hình riêng cho UI thì ưu tiên
+        var uiCheckUrl = configuration["App:HealthUiCheckUrl"] ?? fullHealthCheckUrl;
 
         var healthChecksUiBuilder = services.AddHealthChecksUI(settings =>
         {
-            settings.AddHealthCheckEndpoint("VietlifeStore Health Status", configuration["App:HealthUiCheckUrl"] ?? healthCheckUrl);
+            settings.AddHealthCheckEndpoint(
+                "VietlifeStore Health Status",
+                uiCheckUrl
+            );
         });
 
-        // Set your HealthCheck UI Storage here
         healthChecksUiBuilder.AddInMemoryStorage();
 
+        // ===== MAP UI ENDPOINT =====
         services.MapHealthChecksUiEndpoints(options =>
         {
             options.UIPath = "/health-ui";
-            options.ApiPath = "/health-api";
+            options.ApiPath = "/health-ui-api";
         });
     }
 
@@ -61,7 +81,9 @@ public static class HealthChecksBuilderExtensions
         return services;
     }
 
-    private static IServiceCollection MapHealthChecksUiEndpoints(this IServiceCollection services, Action<global::HealthChecks.UI.Configuration.Options>? setupOption = null)
+    private static IServiceCollection MapHealthChecksUiEndpoints(
+        this IServiceCollection services,
+        Action<global::HealthChecks.UI.Configuration.Options>? setupOption = null)
     {
         services.Configure<AbpEndpointRouterOptions>(routerOptions =>
         {

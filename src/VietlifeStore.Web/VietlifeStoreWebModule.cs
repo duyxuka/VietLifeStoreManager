@@ -57,6 +57,10 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Localization;
 using System.Collections.Generic;
 using System.Globalization;
+using HealthChecks.UI.Client;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using OpenIddict.Server;
+using Volo.Abp.AspNetCore.Mvc.AntiForgery;
 
 namespace VietlifeStore.Web;
 
@@ -112,13 +116,23 @@ public class VietlifeStoreWebModule : AbpModule
 
             PreConfigure<OpenIddictServerBuilder>(serverBuilder =>
             {
-                serverBuilder.AddProductionEncryptionAndSigningCertificate("openiddict.pfx", configuration["AuthServer:CertificatePassPhrase"]!);
+                //serverBuilder.AddProductionEncryptionAndSigningCertificate("openiddict.pfx", configuration["AuthServer:CertificatePassPhrase"]!);
                 serverBuilder.SetIssuer(new Uri(configuration["AuthServer:Authority"]!));
                 serverBuilder.AddEphemeralEncryptionKey();
                 serverBuilder.AddEphemeralSigningKey();
                 serverBuilder.AllowPasswordFlow().AllowRefreshTokenFlow().AllowAuthorizationCodeFlow().AllowClientCredentialsFlow().AcceptAnonymousClients();
+                // ?? THÊM DÒNG NÀY
+                serverBuilder.SetAccessTokenLifetime(TimeSpan.FromDays(1));
+
+                // (khuy?n ngh?) refresh token dài h?n access token
+                serverBuilder.SetRefreshTokenLifetime(TimeSpan.FromDays(7));
             });
         }
+        PreConfigure<OpenIddictServerBuilder>(serverBuilder =>
+        {
+            serverBuilder.SetAccessTokenLifetime(TimeSpan.FromDays(1));
+            serverBuilder.SetRefreshTokenLifetime(TimeSpan.FromDays(7));
+        });
     }
 
     public override void ConfigureServices(ServiceConfigurationContext context)
@@ -156,13 +170,10 @@ public class VietlifeStoreWebModule : AbpModule
         ConfigureAutoApiControllers();
         ConfigureSwagger(context, configuration);
         ConfigureCors(context, configuration);
-
         Configure<PermissionManagementOptions>(options =>
         {
             options.IsDynamicPermissionStoreEnabled = true;
         });
-        
-
     }
 
 
@@ -317,7 +328,10 @@ public class VietlifeStoreWebModule : AbpModule
         var app = context.GetApplicationBuilder();
         var env = context.GetEnvironment();
 
-        app.UseForwardedHeaders();
+        app.UseForwardedHeaders(new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+        });
 
         if (env.IsDevelopment())
         {
@@ -346,8 +360,21 @@ public class VietlifeStoreWebModule : AbpModule
             app.UseHsts();
         }
 
+        app.UseDefaultFiles();
+        app.UseStaticFiles();
         app.UseCorrelationId();
         app.UseRouting();
+        app.UseHealthChecks("/health-status", new HealthCheckOptions
+        {
+            Predicate = _ => true,
+            ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse, // JSON chu?n cho UI
+            AllowCachingResponses = false
+        });
+        app.UseHealthChecksUI(options =>
+        {
+            options.UIPath = "/health-ui";
+            options.ApiPath = "/health-ui-api";
+        });
         app.UseCors();
         app.MapAbpStaticAssets();
         app.UseAbpStudioLink();
@@ -379,6 +406,15 @@ public class VietlifeStoreWebModule : AbpModule
         });
         app.UseAuditing();
         app.UseAbpSerilogEnrichers();
+        app.UseEndpoints(endpoints =>
+        {
+            endpoints.MapControllers();
+            // ADMIN SPA
+            endpoints.MapFallbackToFile("/admin/{*path:nonfile}", "admin/index.html");
+
+            // USER SPA
+            endpoints.MapFallbackToFile("{*path:nonfile}", "index.html");
+        });
         app.UseConfiguredEndpoints();
     }
 }

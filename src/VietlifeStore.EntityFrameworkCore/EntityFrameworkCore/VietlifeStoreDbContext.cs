@@ -30,6 +30,8 @@ using VietlifeStore.Configurations.TaiKhoans;
 using VietlifeStore.IdentitySettings;
 using VietlifeStore.Configurations.IdentitySettings;
 using VietlifeStore.Entity.TaiKhoans;
+using VietlifeStore.Entity.VideoPlatform;
+using VietlifeStore.Configurations.VideoPlatform;
 
 namespace VietlifeStore.EntityFrameworkCore;
 
@@ -91,6 +93,7 @@ public class VietlifeStoreDbContext :
     public DbSet<Voucher> Vouchers { get; set; }
     public DbSet<LienHe> LienHes { get; set; }
     public DbSet<TaiKhoan> TaiKhoans { get; set; }
+    public DbSet<SocialVideo> SocialVideos { get; set; }
 
 
     #endregion
@@ -139,6 +142,7 @@ public class VietlifeStoreDbContext :
 
         builder.ApplyConfiguration(new QuaTangConfiguration());
         builder.ApplyConfiguration(new TaiKhoanConfiguration());
+        builder.ApplyConfiguration(new SocialVideoConfigurator());
 
         /* Configure your own tables/entities inside here */
 

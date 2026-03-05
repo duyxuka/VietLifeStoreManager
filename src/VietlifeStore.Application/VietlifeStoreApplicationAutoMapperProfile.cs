@@ -21,6 +21,8 @@ using VietlifeStore.Entity.SanPhamsList.SanPhamBienTheThuocTinhs;
 using VietlifeStore.Entity.SanPhamsList.SanPhams;
 using VietlifeStore.Entity.SanPhamsList.ThuocTinhs;
 using VietlifeStore.Entity.TaiKhoans;
+using VietlifeStore.Entity.Videoplatform;
+using VietlifeStore.Entity.VideoPlatform;
 using VietlifeStore.Roles;
 using VietlifeStore.System.Roles;
 using VietlifeStore.System.Users;
@@ -143,5 +145,10 @@ public class VietlifeStoreApplicationAutoMapperProfile : Profile
         CreateMap<CreateUpdateThuocTinhDto, ThuocTinh>();
         CreateMap<ThuocTinh, ThuocTinhDto>();
         CreateMap<ThuocTinh, ThuocTinhInListDto>();
+
+        //SocialVideo
+        CreateMap<CreateUpdateSocialVideoDto, SocialVideo>();
+        CreateMap<SocialVideo, SocialVideoDto>();
+        CreateMap<SocialVideo, SocialVideoInListDto>();
     }
 }

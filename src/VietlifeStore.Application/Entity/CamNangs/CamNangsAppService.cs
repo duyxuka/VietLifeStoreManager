@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -158,48 +159,63 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
         [AllowAnonymous]
         public async Task<PagedResultDto<CamNangInListDto>> GetListFilterAsync(BaseListFilterDto input)
         {
-            var camNangQueryable = await Repository.GetQueryableAsync();
-            var danhMucQueryable = await _danhMucRepo.GetQueryableAsync();
+            var camNangQueryable = (await Repository.GetQueryableAsync())
+                .AsNoTracking()
+                .Where(x => x.TrangThai);
 
+            var danhMucQueryable = (await _danhMucRepo.GetQueryableAsync())
+                .AsNoTracking();
+
+            // ================= FILTER KEYWORD =================
+            if (!string.IsNullOrWhiteSpace(input.Keyword))
+            {
+                camNangQueryable = camNangQueryable.Where(x =>
+                    x.Ten.Contains(input.Keyword) ||
+                    x.Slug.Contains(input.Keyword));
+            }
+
+            // ================= JOIN + FILTER DANH MỤC =================
             var query =
                 from cn in camNangQueryable
                 join dm in danhMucQueryable
                     on cn.DanhMucCamNangId equals dm.Id
-                where cn.TrangThai
-                select new { cn, dm };
+                select new
+                {
+                    cn.Id,
+                    cn.Ten,
+                    cn.Slug,
+                    cn.Anh,
+                    Mota = cn.Mota.Substring(0, 200),
+                    cn.CreationTime,
+                    cn.TrangThai,
+                    TenDanhMuc = dm.Ten,
+                    DanhMucSlug = dm.Slug
+                };
 
-            // ================= LỌC DANH MỤC =================
             if (!string.IsNullOrWhiteSpace(input.DanhMucSlug))
             {
-                query = query.Where(x => x.dm.Slug == input.DanhMucSlug);
-            }
-
-            // ================= LỌC KEYWORD =================
-            if (!string.IsNullOrWhiteSpace(input.Keyword))
-            {
-                query = query.Where(x =>
-                    x.cn.Ten.Contains(input.Keyword) ||
-                    x.cn.Slug.Contains(input.Keyword));
+                query = query.Where(x => x.DanhMucSlug == input.DanhMucSlug);
             }
 
             var total = await AsyncExecuter.LongCountAsync(query);
 
             var items = await AsyncExecuter.ToListAsync(
                 query
-                    .Skip(input.SkipCount)
-                    .Take(input.MaxResultCount)
+                .OrderByDescending(x => x.CreationTime)
+                .Skip(input.SkipCount)
+                .Take(input.MaxResultCount)
             );
 
             var result = items.Select(x => new CamNangInListDto
             {
-                Id = x.cn.Id,
-                Ten = x.cn.Ten,
-                Slug = x.cn.Slug,
-                Anh = x.cn.Anh,
-                Mota = GetShortDescription(x.cn.Mota, 200),
-                CreationTime = x.cn.CreationTime,
-                TrangThai = x.cn.TrangThai,
-                TenDanhMuc = x.dm.Ten
+                Id = x.Id,
+                Ten = x.Ten,
+                Slug = x.Slug,
+                Anh = x.Anh,
+                Mota = GetShortDescription(x.Mota, 200),
+                CreationTime = x.CreationTime,
+                TrangThai = x.TrangThai,
+                TenDanhMuc = x.TenDanhMuc
             }).ToList();
 
             return new PagedResultDto<CamNangInListDto>(total, result);

@@ -144,6 +144,13 @@ public class VietlifeStorePermissionDefinitionProvider : PermissionDefinitionPro
         thuocTinhPermission.AddChild(VietlifeStorePermissions.ThuocTinh.Update, L("Permission:ThuocTinh.Update"));
         thuocTinhPermission.AddChild(VietlifeStorePermissions.ThuocTinh.Delete, L("Permission:ThuocTinh.Delete"));
 
+        //SocialVideo
+        var socialVideoPermission = VietLifeStoreGroup.AddPermission(VietlifeStorePermissions.SocialVideo.Default, L("Permission:SocialVideo"));
+        socialVideoPermission.AddChild(VietlifeStorePermissions.SocialVideo.View, L("Permission:SocialVideo.View"));
+        socialVideoPermission.AddChild(VietlifeStorePermissions.SocialVideo.Create, L("Permission:SocialVideo.Create"));
+        socialVideoPermission.AddChild(VietlifeStorePermissions.SocialVideo.Update, L("Permission:SocialVideo.Update"));
+        socialVideoPermission.AddChild(VietlifeStorePermissions.SocialVideo.Delete, L("Permission:SocialVideo.Delete"));
+
     }
 
     private static LocalizableString L(string name)
