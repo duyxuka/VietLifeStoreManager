@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\VietlifeStore.Domain.Shared\VietlifeStore.Domain.Shared.csproj" />
+    <ProjectReference Include="..\VietlifeStore.Domain\VietlifeStore.Domain.csproj" />
   </ItemGroup>
   
   <ItemGroup>

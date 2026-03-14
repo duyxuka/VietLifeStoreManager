@@ -1,6 +1,7 @@
 using AutoMapper;
 using VietlifeStore.Entity.Banners;
 using VietlifeStore.Entity.CamNangs;
+using VietlifeStore.Entity.CamNangsList.CamNangComments;
 using VietlifeStore.Entity.CamNangsList.CamNangs;
 using VietlifeStore.Entity.CamNangsList.DanhMucCamNangs;
 using VietlifeStore.Entity.ChinhSachs;
@@ -11,6 +12,7 @@ using VietlifeStore.Entity.DonHangsList.ChiTietDonHangs;
 using VietlifeStore.Entity.DonHangsList.DonHangs;
 using VietlifeStore.Entity.DonHangsList.Vouchers;
 using VietlifeStore.Entity.LienHes;
+using VietlifeStore.Entity.Payments;
 using VietlifeStore.Entity.SanPhams;
 using VietlifeStore.Entity.SanPhamsList.AnhSanPhams;
 using VietlifeStore.Entity.SanPhamsList.DanhMucSanPhams;
@@ -18,6 +20,7 @@ using VietlifeStore.Entity.SanPhamsList.GiaTriThuocTinhs;
 using VietlifeStore.Entity.SanPhamsList.QuaTangs;
 using VietlifeStore.Entity.SanPhamsList.SanPhamBienThes;
 using VietlifeStore.Entity.SanPhamsList.SanPhamBienTheThuocTinhs;
+using VietlifeStore.Entity.SanPhamsList.SanPhamReviews;
 using VietlifeStore.Entity.SanPhamsList.SanPhams;
 using VietlifeStore.Entity.SanPhamsList.ThuocTinhs;
 using VietlifeStore.Entity.TaiKhoans;
@@ -93,7 +96,9 @@ public class VietlifeStoreApplicationAutoMapperProfile : Profile
 
         //ChiTietDonHang
         CreateMap<CreateUpdateChiTietDonHangDto, ChiTietDonHang>();
-        CreateMap<ChiTietDonHang, ChiTietDonHangDto>();
+        CreateMap<ChiTietDonHang, ChiTietDonHangDto>()
+        .ForMember(dest => dest.TenSanPham,
+            opt => opt.MapFrom(src => src.SanPham.Ten));
         CreateMap<ChiTietDonHang, ChiTietDonHangInListDto>();
 
         //Voucher
@@ -150,5 +155,17 @@ public class VietlifeStoreApplicationAutoMapperProfile : Profile
         CreateMap<CreateUpdateSocialVideoDto, SocialVideo>();
         CreateMap<SocialVideo, SocialVideoDto>();
         CreateMap<SocialVideo, SocialVideoInListDto>();
+
+        CreateMap<PaymentInformationModel, PaymentInformationModelDto>();
+        CreateMap<CreateUpdatePaymentInformationModelDto, PaymentInformationModel>();
+        CreateMap<PaymentInformationModel, PaymentInformationModelInListDto>();
+
+        CreateMap<CamNangComment, CamNangCommentDto>();
+        CreateMap<CreateUpdateCamNangCommentDto, CamNangComment>();
+        CreateMap<CamNangComment, CamNangCommentInListDto>();
+
+        CreateMap<SanPhamReview, SanPhamReviewDto>();
+        CreateMap<CreateUpdateSanPhamReviewDto, SanPhamReview>();
+        CreateMap<SanPhamReview, SanPhamReviewInListDto>();
     }
 }

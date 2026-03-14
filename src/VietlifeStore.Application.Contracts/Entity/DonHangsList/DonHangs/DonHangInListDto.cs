@@ -11,9 +11,11 @@ namespace VietlifeStore.Entity.DonHangsList.DonHangs
     public class DonHangInListDto : EntityDto<Guid>
     {
         public string Ten { get; set; }
+        public string? Ma { get; set; }
         public string Email { get; set; }
         public string SoDienThoai { get; set; }
         public string PhuongThucThanhToan { get; set; }
+        public decimal TongSoLuong { get; set; }
         public decimal TongTien { get; set; }
         public byte TrangThai { get; set; } // Ví dụ: "Chờ xác nhận", "Đang giao", "Hoàn thành"
         public DateTime NgayDat { get; set; } = DateTime.Now;

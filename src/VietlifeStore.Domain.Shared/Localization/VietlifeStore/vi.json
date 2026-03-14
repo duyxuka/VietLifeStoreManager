@@ -117,6 +117,10 @@
     "Permission:SocialVideo.View": "Xem video xã hội",
     "Permission:SocialVideo.Create": "Tạo video xã hội",
     "Permission:SocialVideo.Update": "Cập nhật video xã hội",
-    "Permission:SocialVideo.Delete": "Xóa video xã hội"
+    "Permission:SocialVideo.Delete": "Xóa video xã hội",
+
+    "Permission:PaymentInformationModel": "Đơn hàng VNPAY",
+    "Permission:PaymentInformationModel.View": "Xem đơn hàng VNPAY",
+    "Permission:PaymentInformationModel.Delete": "Xóa đơn hàng VNPAY"
   }
 }

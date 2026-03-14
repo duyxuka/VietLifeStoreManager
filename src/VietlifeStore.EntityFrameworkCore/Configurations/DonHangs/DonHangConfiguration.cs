@@ -11,7 +11,9 @@ namespace VietlifeStore.Configurations.DonHangs
         {
             builder.ToTable(VietlifeStoreConsts.DbTablePrefix + "DonHang");
             builder.HasKey(x => x.Id);
-
+            builder.Property(x => x.Ma)
+              .IsRequired()
+              .HasMaxLength(50);
             builder.Property(x => x.Ten)
                    .IsRequired()
                    .HasMaxLength(256);

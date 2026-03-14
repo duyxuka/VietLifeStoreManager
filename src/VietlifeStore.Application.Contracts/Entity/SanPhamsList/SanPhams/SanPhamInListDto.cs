@@ -15,6 +15,9 @@ namespace VietlifeStore.Entity.SanPhamsList.SanPhams
         public Guid DanhMucId { get; set; } // FK đến DanhMucSanPham
         public string Anh { get; set; } // Danh sách URL hình ảnh
         public string Slug { get; set; }
+        public int? ThuTu { get; set; }
+        public int? LuotXem { get; set; }
+        public int? LuotMua { get; set; }
         public string MoTaNgan { get; set; } // Danh sách URL hình ảnh
         public bool TrangThai { get; set; } = true; // Trạng thái hiển thị
         public bool LaDatLich { get; set; } = false; // Sản phẩm có phải là dịch vụ đặt lịch không

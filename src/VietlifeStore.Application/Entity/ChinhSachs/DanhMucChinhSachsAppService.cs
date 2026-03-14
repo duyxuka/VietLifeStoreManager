@@ -2,9 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using VietlifeStore.Entity.ChinhSachsList.DanhMucChinhSachs;
 using VietlifeStore.Permissions;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
@@ -36,6 +38,20 @@ namespace VietlifeStore.Entity.ChinhSachs
         [Authorize(VietlifeStorePermissions.DanhMucChinhSach.Create)]
         public override async Task<DanhMucChinhSachDto> CreateAsync(CreateUpdateDanhMucChinhSachDto input)
         {
+            if (string.IsNullOrWhiteSpace(input.Ten))
+                throw new UserFriendlyException("Tên danh mục không được để trống");
+
+            // Tự động sinh slug nếu chưa có
+            if (string.IsNullOrWhiteSpace(input.Slug))
+            {
+                input.Slug = await GenerateUniqueSlugAsync(input.Ten);
+            }
+            else
+            {
+                // Kiểm tra slug đã tồn tại khi người dùng nhập thủ công
+                if (await Repository.AnyAsync(x => x.Slug == input.Slug))
+                    throw new UserFriendlyException("Slug đã tồn tại, vui lòng chọn slug khác.");
+            }
             var entity = new DanhMucChinhSach
             {
                 Ten = input.Ten,
@@ -57,11 +73,24 @@ namespace VietlifeStore.Entity.ChinhSachs
             var entity = await Repository.GetAsync(id);
 
             entity.Ten = input.Ten;
-            entity.Slug = input.Slug;
             entity.TrangThai = input.TrangThai;
             entity.TitleSEO = input.TitleSEO;
             entity.Keyword = input.Keyword;
             entity.DescriptionSEO = input.DescriptionSEO;
+
+            // Xử lý slug
+            if (!string.IsNullOrWhiteSpace(input.Slug) && input.Slug != entity.Slug)
+            {
+                if (await Repository.AnyAsync(x => x.Slug == input.Slug && x.Id != id))
+                    throw new UserFriendlyException("Slug đã tồn tại, vui lòng chọn slug khác.");
+
+                entity.Slug = input.Slug;
+            }
+            // Nếu slug bị xóa trống → sinh lại từ tên
+            else if (string.IsNullOrWhiteSpace(input.Slug) && !string.IsNullOrWhiteSpace(input.Ten))
+            {
+                entity.Slug = await GenerateUniqueSlugAsync(input.Ten);
+            }
 
             await Repository.UpdateAsync(entity, autoSave: true);
             return MapToGetOutputDto(entity);
@@ -108,6 +137,60 @@ namespace VietlifeStore.Entity.ChinhSachs
                 totalCount,
                 ObjectMapper.Map<List<DanhMucChinhSach>, List<DanhMucChinhSachInListDto>>(items)
             );
+        }
+        // ================= HÀM SINH SLUG UNIQUE =================
+        private async Task<string> GenerateUniqueSlugAsync(string input)
+        {
+            var baseSlug = RemoveVietnamese(input)
+                .ToLowerInvariant()
+                .Replace(" ", "-")
+                .Replace("--", "-")
+                .Trim('-');
+
+            // Loại bỏ ký tự không hợp lệ
+            baseSlug = Regex.Replace(baseSlug, @"[^a-z0-9\-]", "");
+
+            if (string.IsNullOrEmpty(baseSlug))
+                baseSlug = "chinh-sach-" + DateTime.UtcNow.Ticks;
+
+            var slug = baseSlug;
+            int counter = 1;
+            while (await Repository.AnyAsync(x => x.Slug == slug))
+            {
+                slug = $"{baseSlug}-{counter++}";
+            }
+            return slug;
+        }
+
+        private static string RemoveVietnamese(string text)
+        {
+            string[] vietnameseSigns = new string[]
+            {
+                "aAeEoOuUiIdDyY",
+                "áàạảãâấầậẩẫăắằặẳẵ",
+                "ÁÀẠẢÃÂẤẦẬẨẪĂẮẰẶẲẴ",
+                "éèẹẻẽêếềệểễ",
+                "ÉÈẸẺẼÊẾỀỆỂỄ",
+                "óòọỏõôốồộổỗơớờợởỡ",
+                "ÓÒỌỎÕÔỐỒỘỔỖƠỚỜỢỞỠ",
+                "úùụủũưứừựửữ",
+                "ÚÙỤỦŨƯỨỪỰỬỮ",
+                "íìịỉĩ",
+                "ÍÌỊỈĨ",
+                "đ",
+                "Đ",
+                "ýỳỵỷỹ",
+                "ÝỲỴỶỸ"
+            };
+
+            for (int i = 1; i < vietnameseSigns.Length; i++)
+            {
+                for (int j = 0; j < vietnameseSigns[i].Length; j++)
+                {
+                    text = text.Replace(vietnameseSigns[i][j], vietnameseSigns[0][i - 1]);
+                }
+            }
+            return text;
         }
     }
 }

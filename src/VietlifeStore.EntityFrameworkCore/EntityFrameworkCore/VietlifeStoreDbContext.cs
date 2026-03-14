@@ -32,6 +32,8 @@ using VietlifeStore.Configurations.IdentitySettings;
 using VietlifeStore.Entity.TaiKhoans;
 using VietlifeStore.Entity.VideoPlatform;
 using VietlifeStore.Configurations.VideoPlatform;
+using VietlifeStore.Entity.Payments;
+using VietlifeStore.Configurations.Payments;
 
 namespace VietlifeStore.EntityFrameworkCore;
 
@@ -94,6 +96,10 @@ public class VietlifeStoreDbContext :
     public DbSet<LienHe> LienHes { get; set; }
     public DbSet<TaiKhoan> TaiKhoans { get; set; }
     public DbSet<SocialVideo> SocialVideos { get; set; }
+    public DbSet<PaymentInformationModel> PaymentInformationModels { get; set; }
+    public DbSet<VoucherDaSuDung> VoucherDaSuDungs { get; set; }
+    public DbSet<CamNangComment> CamNangComments { get; set; }
+    public DbSet<SanPhamReview> SanPhamReviews { get; set; }
 
 
     #endregion
@@ -143,6 +149,10 @@ public class VietlifeStoreDbContext :
         builder.ApplyConfiguration(new QuaTangConfiguration());
         builder.ApplyConfiguration(new TaiKhoanConfiguration());
         builder.ApplyConfiguration(new SocialVideoConfigurator());
+        builder.ApplyConfiguration(new PaymentInformationConfiguration());
+        builder.ApplyConfiguration(new VoucherDaSuDungConfiguration());
+        builder.ApplyConfiguration(new CamNangCommentConfiguration());
+        builder.ApplyConfiguration(new SanPhamReviewConfiguration());
 
         /* Configure your own tables/entities inside here */
 

@@ -12,5 +12,6 @@ namespace VietlifeStore
         public string? Keyword { get; set; }
         public string? Sort { get; set; }
         public string? DanhMucSlug { get; set; }
+        public Guid? Id { get; set; }
     }
 }

@@ -57,7 +57,20 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
         {
             if (string.IsNullOrWhiteSpace(input.Anh))
                 throw new UserFriendlyException("Không thấy file ảnh");
+            if (string.IsNullOrWhiteSpace(input.Ten))
+                throw new UserFriendlyException("Tên cẩm nang không được để trống");
 
+            // Tự động sinh slug nếu chưa có
+            if (string.IsNullOrWhiteSpace(input.Slug))
+            {
+                input.Slug = await GenerateUniqueSlugAsync(input.Ten);
+            }
+            else
+            {
+                // Kiểm tra slug tồn tại khi người dùng nhập thủ công
+                if (await Repository.AnyAsync(x => x.Slug == input.Slug))
+                    throw new UserFriendlyException("Slug đã tồn tại, vui lòng chọn slug khác.");
+            }
             var entity = new CamNang
             {
                 Ten = input.Ten,
@@ -82,13 +95,25 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
             var entity = await Repository.GetAsync(id);
             var oldImage = entity.Anh;
             entity.Ten = input.Ten;
-            entity.Slug = input.Slug;
             entity.Mota = input.Mota;
             entity.DanhMucCamNangId = input.DanhMucCamNangId;
             entity.TrangThai = input.TrangThai;
             entity.TitleSEO = input.TitleSEO;
             entity.Keyword = input.Keyword;
             entity.DescriptionSEO = input.DescriptionSEO;
+            // Xử lý slug
+            if (!string.IsNullOrWhiteSpace(input.Slug) && input.Slug != entity.Slug)
+            {
+                if (await Repository.AnyAsync(x => x.Slug == input.Slug && x.Id != id))
+                    throw new UserFriendlyException("Slug đã tồn tại, vui lòng chọn slug khác.");
+
+                entity.Slug = input.Slug;
+            }
+            else if (string.IsNullOrWhiteSpace(input.Slug) && !string.IsNullOrWhiteSpace(input.Ten))
+            {
+                entity.Slug = await GenerateUniqueSlugAsync(input.Ten);
+            }
+
             if (!string.IsNullOrWhiteSpace(input.Anh) && input.Anh != oldImage)
             {
                 entity.Anh = input.Anh;
@@ -153,6 +178,25 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
             );
 
             return ObjectMapper.Map<List<CamNang>, List<CamNangInListDto>>(list);
+        }
+        [Authorize(VietlifeStorePermissions.CamNang.View)]
+        public async Task<List<CamNangSelectDto>> GetListSelectAsync()
+        {
+            var query = await Repository.GetQueryableAsync();
+
+            var result = await AsyncExecuter.ToListAsync(
+                query
+                .AsNoTracking()
+                .Where(x => x.TrangThai)
+                .OrderBy(x => x.Ten)
+                .Select(x => new CamNangSelectDto
+                {
+                    Id = x.Id,
+                    Ten = x.Ten
+                })
+            );
+
+            return result;
         }
 
         // ================= FILTER + PAGING =================
@@ -225,16 +269,31 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
         [AllowAnonymous]
         public async Task<List<CamNangInListDto>> GetLatestCamNangHomeAsync(int take = 4)
         {
-            var query = await Repository.GetQueryableAsync();
+            var camNangQueryable = (await Repository.GetQueryableAsync())
+                .AsNoTracking()
+                .Where(x => x.TrangThai);
 
-            var items = await AsyncExecuter.ToListAsync(
-                query
-                    .Where(x => x.TrangThai)
-                    .OrderByDescending(x => x.CreationTime)
-                    .Take(take)
+            var danhMucQueryable = (await _danhMucRepo.GetQueryableAsync())
+                .AsNoTracking();
+
+            var query =
+                from cn in camNangQueryable
+                join dm in danhMucQueryable
+                    on cn.DanhMucCamNangId equals dm.Id
+                orderby cn.CreationTime descending
+                select new CamNangInListDto
+                {
+                    Id = cn.Id,
+                    Ten = cn.Ten,
+                    Slug = cn.Slug,
+                    Anh = cn.Anh,
+                    CreationTime = cn.CreationTime,
+                    TenDanhMuc = dm.Ten
+                };
+
+            return await AsyncExecuter.ToListAsync(
+                query.Take(take)
             );
-
-            return ObjectMapper.Map<List<CamNang>, List<CamNangInListDto>>(items);
         }
 
         [AllowAnonymous]
@@ -244,15 +303,28 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
             {
                 throw new UserFriendlyException("Slug danh mục không hợp lệ");
             }
+
             var danhMuc = await _danhMucRepo.FirstOrDefaultAsync(x => x.Slug == slug);
             if (danhMuc == null)
             {
                 throw new UserFriendlyException("Danh mục không tồn tại");
             }
-            var entities = await Repository.GetListAsync(
-                x => x.DanhMucCamNangId == danhMuc.Id && x.TrangThai
+
+            var queryable = await Repository.GetQueryableAsync();
+
+            var result = await AsyncExecuter.ToListAsync(
+                queryable
+                    .Where(x => x.DanhMucCamNangId == danhMuc.Id && x.TrangThai)
+                    .OrderByDescending(x => x.CreationTime).Take(5)
+                    .Select(x => new CamNangInListDto
+                    {
+                        Id = x.Id,
+                        Ten = x.Ten,
+                        Slug = x.Slug,
+                        Anh = x.Anh,
+                        CreationTime = x.CreationTime
+                    })
             );
-            var result = ObjectMapper.Map<List<CamNang>, List<CamNangInListDto>>(entities);
 
             return result;
         }
@@ -310,6 +382,59 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
                 return plainText;
 
             return plainText.Substring(0, length) + "...";
+        }
+        // ================= HÀM SINH SLUG UNIQUE =================
+        private async Task<string> GenerateUniqueSlugAsync(string input)
+        {
+            var baseSlug = RemoveVietnamese(input)
+                .ToLowerInvariant()
+                .Replace(" ", "-")
+                .Replace("--", "-")
+                .Trim('-');
+
+            baseSlug = Regex.Replace(baseSlug, @"[^a-z0-9\-]", "");
+
+            if (string.IsNullOrEmpty(baseSlug))
+                baseSlug = "cam-nang-" + DateTime.UtcNow.Ticks;
+
+            var slug = baseSlug;
+            int counter = 1;
+            while (await Repository.AnyAsync(x => x.Slug == slug))
+            {
+                slug = $"{baseSlug}-{counter++}";
+            }
+            return slug;
+        }
+
+        private static string RemoveVietnamese(string text)
+        {
+            string[] vietnameseSigns = new string[]
+            {
+                "aAeEoOuUiIdDyY",
+                "áàạảãâấầậẩẫăắằặẳẵ",
+                "ÁÀẠẢÃÂẤẦẬẨẪĂẮẰẶẲẴ",
+                "éèẹẻẽêếềệểễ",
+                "ÉÈẸẺẼÊẾỀỆỂỄ",
+                "óòọỏõôốồộổỗơớờợởỡ",
+                "ÓÒỌỎÕÔỐỒỘỔỖƠỚỜỢỞỠ",
+                "úùụủũưứừựửữ",
+                "ÚÙỤỦŨƯỨỪỰỬỮ",
+                "íìịỉĩ",
+                "ÍÌỊỈĨ",
+                "đ",
+                "Đ",
+                "ýỳỵỷỹ",
+                "ÝỲỴỶỸ"
+            };
+
+            for (int i = 1; i < vietnameseSigns.Length; i++)
+            {
+                for (int j = 0; j < vietnameseSigns[i].Length; j++)
+                {
+                    text = text.Replace(vietnameseSigns[i][j], vietnameseSigns[0][i - 1]);
+                }
+            }
+            return text;
         }
     }
 }

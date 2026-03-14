@@ -55,6 +55,18 @@ namespace VietlifeStore.Entity.SanPhams
                 throw new UserFriendlyException("Không thấy file ảnh danh mục sản phẩm thumbnail");
             if (string.IsNullOrWhiteSpace(input.AnhBanner))
                 throw new UserFriendlyException("Không thấy file ảnh danh mục sản phẩm banner");
+
+            // Tự động sinh slug nếu trống
+            if (string.IsNullOrWhiteSpace(input.Slug) && !string.IsNullOrWhiteSpace(input.Ten))
+            {
+                input.Slug = await GenerateUniqueSlugAsync(input.Ten);
+            }
+            else if (!string.IsNullOrWhiteSpace(input.Slug))
+            {
+                // Kiểm tra slug đã tồn tại (khi người dùng nhập thủ công)
+                if (await Repository.AnyAsync(x => x.Slug == input.Slug))
+                    throw new UserFriendlyException("Slug đã tồn tại, vui lòng chọn slug khác.");
+            }
             var entity = new DanhMucSanPham
             {
                 Ten = input.Ten,
@@ -79,11 +91,25 @@ namespace VietlifeStore.Entity.SanPhams
             var oldThumbnail = entity.AnhThumbnail;
             var oldBanner = entity.AnhBanner;
             entity.Ten = input.Ten;
-            entity.Slug = input.Slug;
             entity.TrangThai = input.TrangThai;
             entity.TitleSEO = input.TitleSEO;
             entity.Keyword = input.Keyword;
             entity.DescriptionSEO = input.DescriptionSEO;
+
+            if (!string.IsNullOrWhiteSpace(input.Slug) && input.Slug != entity.Slug)
+            {
+                // Slug thay đổi → kiểm tra unique
+                if (await Repository.AnyAsync(x => x.Slug == input.Slug && x.Id != id))
+                    throw new UserFriendlyException("Slug đã tồn tại, vui lòng chọn slug khác.");
+
+                entity.Slug = input.Slug;
+            }
+            // Nếu slug trống và có tên → sinh mới (ít dùng trường hợp này khi update)
+            else if (string.IsNullOrWhiteSpace(input.Slug) && !string.IsNullOrWhiteSpace(input.Ten))
+            {
+                entity.Slug = await GenerateUniqueSlugAsync(input.Ten);
+            }
+
             // Nếu có ảnh mới → xoá ảnh cũ trước khi cập nhật
             if (!string.IsNullOrWhiteSpace(input.AnhThumbnail) && input.AnhThumbnail != oldThumbnail)
             {
@@ -206,6 +232,62 @@ namespace VietlifeStore.Entity.SanPhams
                 ObjectMapper.Map<List<DanhMucSanPham>, List<DanhMucSanPhamInListDto>>(items)
             );
         }
+        // Hàm sinh slug unique (tương tự SanPham)
+        private async Task<string> GenerateUniqueSlugAsync(string input)
+        {
+            var baseSlug = RemoveVietnamese(input)
+                .ToLowerInvariant()
+                .Replace(" ", "-")
+                .Replace("--", "-")
+                .Trim('-');
 
+            // Loại bỏ ký tự không hợp lệ
+            baseSlug = Regex.Replace(baseSlug, @"[^a-z0-9\-]", "");
+
+            if (string.IsNullOrEmpty(baseSlug))
+                baseSlug = "danh-muc-" + DateTime.UtcNow.Ticks;
+
+            var slug = baseSlug;
+            int counter = 1;
+            while (await Repository.AnyAsync(x => x.Slug == slug))
+            {
+                slug = $"{baseSlug}-{counter++}";
+            }
+            return slug;
+        }
+
+        // Hàm loại bỏ dấu tiếng Việt (copy từ SanPham nếu chưa có)
+        private static string RemoveVietnamese(string text)
+        {
+            // Giống hệt hàm RemoveVietnamese trong SanPhamsAppService
+            // (bạn có thể copy nguyên hoặc di chuyển ra class helper chung)
+            string[] vietnameseSigns = new string[]
+            {
+                "aAeEoOuUiIdDyY",
+                "áàạảãâấầậẩẫăắằặẳẵ",
+                "ÁÀẠẢÃÂẤẦẬẨẪĂẮẰẶẲẴ",
+                "éèẹẻẽêếềệểễ",
+                "ÉÈẸẺẼÊẾỀỆỂỄ",
+                "óòọỏõôốồộổỗơớờợởỡ",
+                "ÓÒỌỎÕÔỐỒỘỔỖƠỚỜỢỞỠ",
+                "úùụủũưứừựửữ",
+                "ÚÙỤỦŨƯỨỪỰỬỮ",
+                "íìịỉĩ",
+                "ÍÌỊỈĨ",
+                "đ",
+                "Đ",
+                "ýỳỵỷỹ",
+                "ÝỲỴỶỸ"
+            };
+
+            for (int i = 1; i < vietnameseSigns.Length; i++)
+            {
+                for (int j = 0; j < vietnameseSigns[i].Length; j++)
+                {
+                    text = text.Replace(vietnameseSigns[i][j], vietnameseSigns[0][i - 1]);
+                }
+            }
+            return text;
+        }
     }
 }

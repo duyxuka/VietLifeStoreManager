@@ -38,5 +38,6 @@ namespace VietlifeStore.Entity.SanPhams
         // Variants: Liên kết với các tùy chọn và biến thể
         public virtual ICollection<SanPhamBienThe> SanPhamBienThes { get; set; } = new List<SanPhamBienThe>();
         public virtual ICollection<AnhSanPham> AnhSanPham { get; set; } = new List<AnhSanPham>();
+        public virtual ICollection<SanPhamReview> Reviews { get; set; } = new List<SanPhamReview>();
     }
 }

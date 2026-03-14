@@ -11,6 +11,7 @@ namespace VietlifeStore.Entity.DonHangsList.DonHangs
     {
         public Guid TaiKhoanKhachHangId { get; set; } // FK đến IdentityUser (tài khoản khách)
         public string Ten { get; set; }
+        public string? Ma { get; set; }
         public string DiaChi { get; set; }
         public string Email { get; set; }
         public string SoDienThoai { get; set; }
@@ -19,7 +20,9 @@ namespace VietlifeStore.Entity.DonHangsList.DonHangs
         public decimal TongSoLuong { get; set; }
         public decimal TongTien { get; set; }
         public byte TrangThai { get; set; } // Ví dụ: "Chờ xác nhận", "Đang giao", "Hoàn thành"
+        public decimal? GiamGiaVoucher { get; set; }
         public DateTime NgayDat { get; set; } = DateTime.Now;
+        public Guid? VoucherId { get; set; } // FK đến Voucher (nếu có)
         public List<CreateUpdateChiTietDonHangDto> ChiTietDonHangs { get; set; } = new();
     }
 }

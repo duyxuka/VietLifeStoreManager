@@ -311,6 +311,7 @@ namespace VietlifeStore.System.Users
         }
 
         [Authorize]
+        [HttpPost]
         public async Task<UserDto> UpdateProfileAsync(UpdateProfileDto input)
         {
             var userId = CurrentUser.GetId();

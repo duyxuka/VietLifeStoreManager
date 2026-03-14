@@ -5,9 +5,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using VietlifeStore.Entity.DonHangsList.Vouchers;
 using VietlifeStore.Permissions;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Users;
 
 namespace VietlifeStore.Entity.DonHangs
 {
@@ -21,9 +23,14 @@ namespace VietlifeStore.Entity.DonHangs
             CreateUpdateVoucherDto>,
         IVouchersAppService
     {
-        public VouchersAppService(IRepository<Voucher, Guid> repository)
+        private readonly IRepository<VoucherDaSuDung, Guid> _voucherUsedRepo;
+        public VouchersAppService(
+            IRepository<Voucher, Guid> repository,
+            IRepository<VoucherDaSuDung, Guid> voucherUsedRepo)
             : base(repository)
         {
+            _voucherUsedRepo = voucherUsedRepo;
+
             GetPolicyName = VietlifeStorePermissions.Voucher.View;
             GetListPolicyName = VietlifeStorePermissions.Voucher.View;
             CreatePolicyName = VietlifeStorePermissions.Voucher.Create;
@@ -116,6 +123,62 @@ namespace VietlifeStore.Entity.DonHangs
                 totalCount,
                 ObjectMapper.Map<List<Voucher>, List<VoucherInListDto>>(items)
             );
+        }
+
+        [Authorize]
+        public async Task<List<VoucherDto>> GetAvailableVouchersAsync(decimal orderTotal)
+        {
+            var userId = CurrentUser.GetId();
+
+            // lấy danh sách voucher user đã dùng
+            var usedVoucherIds = await AsyncExecuter.ToListAsync(
+                (await _voucherUsedRepo.GetQueryableAsync())
+                .Where(x => x.UserId == userId)
+                .Select(x => x.VoucherId)
+            );
+
+            var now = DateTime.Now;
+
+            var vouchers = await AsyncExecuter.ToListAsync(
+                (await Repository.GetQueryableAsync())
+                .Where(x =>
+                    x.TrangThai &&
+                    x.SoLuong > 0 &&
+                    x.DonHangToiThieu <= orderTotal &&
+                    !usedVoucherIds.Contains(x.Id) &&
+                    (x.ThoiHanBatDau == null || x.ThoiHanBatDau <= now) &&
+                    (x.ThoiHanKetThuc == null || x.ThoiHanKetThuc >= now)
+                )
+                .OrderByDescending(x => x.CreationTime)
+            );
+
+            return ObjectMapper.Map<List<Voucher>, List<VoucherDto>>(vouchers);
+        }
+
+        [AllowAnonymous]
+        public async Task<VoucherDto> ValidateVoucherAsync(string code, decimal orderTotal)
+        {
+            var voucher = await Repository.FirstOrDefaultAsync(x => x.MaVoucher == code);
+
+            if (voucher == null)
+                throw new UserFriendlyException("Voucher không tồn tại");
+
+            if (!voucher.TrangThai)
+                throw new UserFriendlyException("Voucher đã bị khóa");
+
+            if (voucher.SoLuong <= 0)
+                throw new UserFriendlyException("Voucher đã hết lượt sử dụng");
+
+            if (voucher.ThoiHanBatDau.HasValue && DateTime.Now < voucher.ThoiHanBatDau)
+                throw new UserFriendlyException("Voucher chưa đến thời gian sử dụng");
+
+            if (voucher.ThoiHanKetThuc.HasValue && DateTime.Now > voucher.ThoiHanKetThuc)
+                throw new UserFriendlyException("Voucher đã hết hạn");
+
+            if (orderTotal < voucher.DonHangToiThieu)
+                throw new UserFriendlyException($"Đơn tối thiểu {voucher.DonHangToiThieu}");
+
+            return ObjectMapper.Map<Voucher, VoucherDto>(voucher);
         }
     }
 }

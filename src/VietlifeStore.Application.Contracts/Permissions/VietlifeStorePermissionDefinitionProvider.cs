@@ -151,6 +151,12 @@ public class VietlifeStorePermissionDefinitionProvider : PermissionDefinitionPro
         socialVideoPermission.AddChild(VietlifeStorePermissions.SocialVideo.Update, L("Permission:SocialVideo.Update"));
         socialVideoPermission.AddChild(VietlifeStorePermissions.SocialVideo.Delete, L("Permission:SocialVideo.Delete"));
 
+        //payment
+        var payMentPermission = VietLifeStoreGroup.AddPermission(VietlifeStorePermissions.PaymentInformationModel.Default, L("Permission:PaymentInformationModel"));
+        payMentPermission.AddChild(VietlifeStorePermissions.PaymentInformationModel.View, L("Permission:PaymentInformationModel.View"));
+        payMentPermission.AddChild(VietlifeStorePermissions.PaymentInformationModel.Create, L("Permission:PaymentInformationModel.Create"));
+        payMentPermission.AddChild(VietlifeStorePermissions.PaymentInformationModel.Update, L("Permission:PaymentInformationModel.Update"));
+        payMentPermission.AddChild(VietlifeStorePermissions.PaymentInformationModel.Delete, L("Permission:PaymentInformationModel.Delete"));
     }
 
     private static LocalizableString L(string name)

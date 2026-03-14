@@ -19,5 +19,6 @@ namespace VietlifeStore.Entity.CamNangs
         public string TitleSEO { get; set; }
         public string Keyword { get; set; }
         public string DescriptionSEO { get; set; }
+        public virtual ICollection<CamNangComment> CamNangComments { get; set; }
     }
 }

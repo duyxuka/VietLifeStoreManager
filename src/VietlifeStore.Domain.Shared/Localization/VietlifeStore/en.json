@@ -117,6 +117,10 @@
     "Permission:SocialVideo.View": "View social videos",
     "Permission:SocialVideo.Create": "Create social video",
     "Permission:SocialVideo.Update": "Update social video",
-    "Permission:SocialVideo.Delete": "Delete social video"
+    "Permission:SocialVideo.Delete": "Delete social video",
+
+    "Permission:PaymentInformationModel": "Order VNPAY",
+    "Permission:PaymentInformationModel.View": "View order VNPAY",
+    "Permission:PaymentInformationModel.Delete": "Delete order VNPAY"
   }
 }

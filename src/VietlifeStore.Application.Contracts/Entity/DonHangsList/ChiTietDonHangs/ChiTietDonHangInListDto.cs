@@ -15,7 +15,6 @@ namespace VietlifeStore.Entity.DonHangsList.ChiTietDonHangs
         public string QuaTang { get; set; }
         public int SoLuong { get; set; }
         public decimal Gia { get; set; }
-        public decimal GiamGiaVoucher { get; set; }
         public bool TrangThai { get; set; }
     }
 }

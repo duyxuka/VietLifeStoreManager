@@ -13,10 +13,10 @@ namespace VietlifeStore.Entity.DonHangsList.ChiTietDonHangs
         public Guid DonHangId { get; set; } // FK đến DonHang
         public Guid SanPhamId { get; set; } // FK đến SanPham
         public string SanPhamBienThe { get; set; }
+        public string TenSanPham { get; set; }
         public string QuaTang { get; set; }
         public int SoLuong { get; set; }
         public decimal Gia { get; set; }
-        public decimal GiamGiaVoucher { get; set; }
         public bool TrangThai { get; set; }
     }
 }

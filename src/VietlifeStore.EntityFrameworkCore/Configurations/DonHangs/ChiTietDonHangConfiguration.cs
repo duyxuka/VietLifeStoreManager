@@ -18,9 +18,6 @@ namespace VietlifeStore.Configurations.DonHangs
             builder.Property(x => x.Gia)
                    .HasPrecision(18, 2);
 
-            builder.Property(x => x.GiamGiaVoucher)
-                   .HasPrecision(18, 2);
-
             builder.Property(x => x.SanPhamBienThe)
                    .HasMaxLength(256);
 
