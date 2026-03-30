@@ -197,6 +197,7 @@ namespace VietlifeStore.Entity.SanPhams
             var query =
                 from dm in danhMucQueryable
                 where dm.TrangThai
+                orderby dm.ThuTu
                 join sp in sanPhamQueryable
                     on dm.Id equals sp.DanhMucId into sanPhamGroup
                 select new DanhMucSanPhamInListDto
@@ -231,6 +232,16 @@ namespace VietlifeStore.Entity.SanPhams
                 totalCount,
                 ObjectMapper.Map<List<DanhMucSanPham>, List<DanhMucSanPhamInListDto>>(items)
             );
+        }
+
+        [Authorize(VietlifeStorePermissions.DanhMucSanPham.Update)]
+        public async Task UpdateThuTu(Guid id, int? thuTu)
+        {
+            var entity = await Repository.GetAsync(id);
+
+            entity.ThuTu = thuTu;
+
+            await Repository.UpdateAsync(entity);
         }
         // Hàm sinh slug unique (tương tự SanPham)
         private async Task<string> GenerateUniqueSlugAsync(string input)

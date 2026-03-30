@@ -47,29 +47,34 @@ namespace VietlifeStore.Entity.SanPhamsList.SanPhamReviews
         }
 
         // ================= FILTER + PAGING =================
-        [Authorize(VietlifeStorePermissions.SanPham.View)]
         public async Task<PagedResultDto<SanPhamReviewInListDto>> GetListFilterAsync(BaseListFilterDto input)
         {
             var reviewQuery = await Repository.GetQueryableAsync();
+
+            reviewQuery = reviewQuery
+                .WhereIf(!string.IsNullOrWhiteSpace(input.Keyword),
+                    x => x.TenNguoiDung.Contains(input.Keyword) ||
+                         x.NoiDung.Contains(input.Keyword))
+                .WhereIf(input.Id.HasValue,
+                    x => x.SanPhamId == input.Id);
+
+            var totalCount = await AsyncExecuter.CountAsync(reviewQuery);
+
             var sanPhamQuery = await _sanPhamRepository.GetQueryableAsync();
 
             var query =
                 from review in reviewQuery
                 join sanPham in sanPhamQuery
                 on review.SanPhamId equals sanPham.Id
-                select new { review, sanPham };
-
-            query = query
-                .WhereIf(!string.IsNullOrWhiteSpace(input.Keyword),
-                    x => x.review.TenNguoiDung.Contains(input.Keyword) ||
-                         x.review.NoiDung.Contains(input.Keyword)).WhereIf(input.Id.HasValue,
-                    x => x.review.SanPhamId == input.Id);
-
-            var totalCount = await AsyncExecuter.CountAsync(query);
+                orderby review.CreationTime descending
+                select new
+                {
+                    review,
+                    TenSanPham = sanPham.Ten
+                };
 
             var items = await AsyncExecuter.ToListAsync(
                 query
-                .OrderByDescending(x => x.review.CreationTime)
                 .Skip(input.SkipCount)
                 .Take(input.MaxResultCount)
             );
@@ -78,14 +83,12 @@ namespace VietlifeStore.Entity.SanPhamsList.SanPhamReviews
             {
                 Id = x.review.Id,
                 SanPhamId = x.review.SanPhamId,
-                TenSanPham = x.sanPham.Ten,
-
+                TenSanPham = x.TenSanPham,
                 TenNguoiDung = x.review.TenNguoiDung,
                 Email = x.review.Email,
                 SoSao = x.review.SoSao,
                 NoiDung = x.review.NoiDung,
                 TrangThai = x.review.TrangThai,
-
                 CreationTime = x.review.CreationTime
             }).ToList();
 

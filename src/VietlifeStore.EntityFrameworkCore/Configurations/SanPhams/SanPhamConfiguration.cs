@@ -38,6 +38,7 @@ namespace VietlifeStore.Configurations.SanPhams
             builder.HasOne(x => x.QuaTang)
                    .WithMany(x => x.SanPhams)
                    .HasForeignKey(x => x.QuaTangId)
+                   .IsRequired(false)
                    .OnDelete(DeleteBehavior.Restrict);
         }
     }

@@ -41,5 +41,11 @@ namespace VietlifeStore.Entity.SanPhamsList.SanPhams
         public List<ThuocTinhDto> ThuocTinhs { get; set; } = new();
         public List<string> AnhPhu { get; set; } = new();
         public List<SanPhamBienTheDto> BienThes { get; set; } = new();
+        public bool HasVariants { get; set; }
+        public decimal? GiaKhuyenMaiBienTheMin { get; set; }
+        public decimal? GiaKhuyenMaiBienTheMax { get; set; }
+        public decimal? GiaBienTheMin { get; set; }
+        public decimal? GiaBienTheMax { get; set; }
+        public int? PhanTramGiamGiaBienThe { get; set; }
     }
 }

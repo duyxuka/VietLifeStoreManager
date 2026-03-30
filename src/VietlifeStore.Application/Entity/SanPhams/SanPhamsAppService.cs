@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using VietlifeStore.ChucNang.DatLichs.DatLichGiamGiaSanPhams;
 using VietlifeStore.Entity.DonHangs;
 using VietlifeStore.Entity.LienHes;
 using VietlifeStore.Entity.MediaContainers;
@@ -662,6 +664,7 @@ namespace VietlifeStore.Entity.SanPhams
                     Id = x.sp.Id,
                     Ten = x.sp.Ten,
                     Slug = x.sp.Slug,
+
                     Gia = x.sp.Gia,
                     GiaKhuyenMai = x.sp.GiaKhuyenMai,
                     Anh = x.sp.Anh,
@@ -672,16 +675,47 @@ namespace VietlifeStore.Entity.SanPhams
 
                     QuaTangTen = x.gift != null ? x.gift.Ten : null,
                     QuaTangGia = x.gift != null ? x.gift.Gia : null,
+
                     ThuTu = x.sp.ThuTu,
                     LuotXem = x.sp.LuotXem,
                     LuotMua = x.sp.LuotMua,
 
+                    // CHECK CÓ BIẾN THỂ
                     HasVariants = bienTheQueryable.Any(bt => bt.SanPhamId == x.sp.Id),
 
+                    // GIÁ BIẾN THỂ MIN
+                    GiaBienTheMin = bienTheQueryable
+                        .Where(bt => bt.SanPhamId == x.sp.Id)
+                        .Select(bt => (decimal?)bt.Gia)
+                        .Min(),
+
+                        // GIÁ BIẾN THỂ MAX
+                    GiaBienTheMax = bienTheQueryable
+                        .Where(bt => bt.SanPhamId == x.sp.Id)
+                        .Select(bt => (decimal?)bt.Gia)
+                        .Max(),
+
+                        // GIÁ KHUYẾN MÃI BIẾN THỂ MIN
+                    GiaKhuyenMaiBienTheMin = bienTheQueryable
+                        .Where(bt => bt.SanPhamId == x.sp.Id && bt.GiaKhuyenMai > 0)
+                        .Select(bt => (decimal?)bt.GiaKhuyenMai)
+                        .Min(),
+
+                         // GIÁ KHUYẾN MÃI BIẾN THỂ MAX
+                    GiaKhuyenMaiBienTheMax = bienTheQueryable
+                        .Where(bt => bt.SanPhamId == x.sp.Id && bt.GiaKhuyenMai > 0)
+                        .Select(bt => (decimal?)bt.GiaKhuyenMai)
+                        .Max(),
+
+                        // GIẢM GIÁ SẢN PHẨM KHÔNG BIẾN THỂ
                     PhanTramGiamGia = TinhPhanTramGiam(
-                        x.sp.Gia,
-                        x.sp.GiaKhuyenMai
-                    )
+                            x.sp.Gia,
+                            x.sp.GiaKhuyenMai
+                    ),
+                    PhanTramGiamGiaBienThe = bienTheQueryable
+                        .Where(bt => bt.SanPhamId == x.sp.Id && bt.GiaKhuyenMai > 0 && bt.Gia > 0)
+                        .Select(bt => (int?)Math.Round((decimal)((1 - bt.GiaKhuyenMai / bt.Gia) * 100)))
+                        .Max()
                 })
             );
 
@@ -765,10 +799,40 @@ namespace VietlifeStore.Entity.SanPhams
 
                 HasVariants = bienTheQueryable.Any(bt => bt.SanPhamId == sp.Id),
 
+
+                // GIÁ BIẾN THỂ MIN
+                GiaBienTheMin = bienTheQueryable
+                        .Where(bt => bt.SanPhamId == sp.Id)
+                        .Select(bt => (decimal?)bt.Gia)
+                        .Min(),
+
+                // GIÁ BIẾN THỂ MAX
+                GiaBienTheMax = bienTheQueryable
+                        .Where(bt => bt.SanPhamId == sp.Id)
+                        .Select(bt => (decimal?)bt.Gia)
+                        .Max(),
+
+                // GIÁ KHUYẾN MÃI BIẾN THỂ MIN
+                GiaKhuyenMaiBienTheMin = bienTheQueryable
+                        .Where(bt => bt.SanPhamId == sp.Id && bt.GiaKhuyenMai > 0)
+                        .Select(bt => (decimal?)bt.GiaKhuyenMai)
+                        .Min(),
+
+                // GIÁ KHUYẾN MÃI BIẾN THỂ MAX
+                GiaKhuyenMaiBienTheMax = bienTheQueryable
+                        .Where(bt => bt.SanPhamId == sp.Id && bt.GiaKhuyenMai > 0)
+                        .Select(bt => (decimal?)bt.GiaKhuyenMai)
+                        .Max(),
+
+                // GIẢM GIÁ SẢN PHẨM KHÔNG BIẾN THỂ
                 PhanTramGiamGia = TinhPhanTramGiam(
-                    sp.Gia,
-                    sp.GiaKhuyenMai
-                )
+                            sp.Gia,
+                            sp.GiaKhuyenMai
+                    ),
+                PhanTramGiamGiaBienThe = bienTheQueryable
+                        .Where(bt => bt.SanPhamId == sp.Id && bt.GiaKhuyenMai > 0 && bt.Gia > 0)
+                        .Select(bt => (int?)Math.Round((decimal)((1 - bt.GiaKhuyenMai / bt.Gia) * 100)))
+                        .Max()
             };
 
             return await AsyncExecuter.ToListAsync(query);
@@ -824,10 +888,39 @@ namespace VietlifeStore.Entity.SanPhams
 
                     HasVariants = btGroup.Any(),
 
+                    // GIÁ BIẾN THỂ MIN
+                    GiaBienTheMin = bienTheQuery
+                        .Where(bt => bt.SanPhamId == sp.Id)
+                        .Select(bt => (decimal?)bt.Gia)
+                        .Min(),
+
+                    // GIÁ BIẾN THỂ MAX
+                    GiaBienTheMax = bienTheQuery
+                        .Where(bt => bt.SanPhamId == sp.Id)
+                        .Select(bt => (decimal?)bt.Gia)
+                        .Max(),
+
+                    // GIÁ KHUYẾN MÃI BIẾN THỂ MIN
+                    GiaKhuyenMaiBienTheMin = bienTheQuery
+                        .Where(bt => bt.SanPhamId == sp.Id && bt.GiaKhuyenMai > 0)
+                        .Select(bt => (decimal?)bt.GiaKhuyenMai)
+                        .Min(),
+
+                    // GIÁ KHUYẾN MÃI BIẾN THỂ MAX
+                    GiaKhuyenMaiBienTheMax = bienTheQuery
+                        .Where(bt => bt.SanPhamId == sp.Id && bt.GiaKhuyenMai > 0)
+                        .Select(bt => (decimal?)bt.GiaKhuyenMai)
+                        .Max(),
+
+                    // GIẢM GIÁ SẢN PHẨM KHÔNG BIẾN THỂ
                     PhanTramGiamGia = TinhPhanTramGiam(
-                        sp.Gia,
-                        sp.GiaKhuyenMai
-                    )
+                            sp.Gia,
+                            sp.GiaKhuyenMai
+                    ),
+                    PhanTramGiamGiaBienThe = bienTheQuery
+                        .Where(bt => bt.SanPhamId == sp.Id && bt.GiaKhuyenMai > 0 && bt.Gia > 0)
+                        .Select(bt => (int?)Math.Round((decimal)((1 - bt.GiaKhuyenMai / bt.Gia) * 100)))
+                        .Max()
                 };
 
             return await AsyncExecuter.ToListAsync(resultQuery);
@@ -893,8 +986,28 @@ namespace VietlifeStore.Entity.SanPhams
                 Id = b.Id,
                 Ten = b.Ten,
                 Gia = b.Gia,
-                GiaKhuyenMai = b.GiaKhuyenMai
+                GiaKhuyenMai = b.GiaKhuyenMai,
+                SanPhamId = b.SanPhamId
             }).ToList();
+
+            if (bienThes.Any())
+            {
+                dto.HasVariants = true;
+                dto.GiaBienTheMin = bienThes.Min(b => (decimal?)b.Gia);
+                dto.GiaBienTheMax = bienThes.Max(b => (decimal?)b.Gia);
+                dto.GiaKhuyenMaiBienTheMin = bienThes
+                    .Where(b => b.GiaKhuyenMai > 0)
+                    .Select(b => (decimal?)b.GiaKhuyenMai)
+                    .Min();
+                dto.GiaKhuyenMaiBienTheMax = bienThes
+                    .Where(b => b.GiaKhuyenMai > 0)
+                    .Select(b => (decimal?)b.GiaKhuyenMai)
+                    .Max();
+                dto.PhanTramGiamGiaBienThe = bienThes
+                        .Where(b => b.GiaKhuyenMai > 0 && b.Gia > 0)
+                        .Select(bt => (int?)Math.Round((decimal)((1 - bt.GiaKhuyenMai / bt.Gia) * 100)))
+                        .Max();
+            }
 
             var bienTheIds = bienThes.Select(x => x.Id).ToList();
 
@@ -928,8 +1041,30 @@ namespace VietlifeStore.Entity.SanPhams
                         .ToList()
                 })
                 .ToList();
-
             return dto;
+        }
+
+        [Authorize(VietlifeStorePermissions.SanPham.View)]
+        public async Task<List<SanPhamBienTheDto>> GetBienThesBySanPhamIdAsync(Guid sanPhamId)
+        {
+            var bienThes = await _bienTheRepo.GetListAsync(x => x.SanPhamId == sanPhamId);
+
+            return bienThes.Select(b => new SanPhamBienTheDto
+            {
+                Id = b.Id,
+                Ten = b.Ten,
+                Gia = b.Gia,
+                GiaKhuyenMai = b.GiaKhuyenMai,
+            }).ToList();
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task TangLuotXemAsync(Guid sanPhamId)
+        {
+            var sanPham = await Repository.GetAsync(sanPhamId);
+            sanPham.LuotXem++;
+            await Repository.UpdateAsync(sanPham, autoSave: true);
         }
     }
 }

@@ -179,4 +179,10 @@ public static class VietlifeStorePermissions
         public const string Update = Default + ".Update";
         public const string Delete = Default + ".Delete";
     }
+
+    public static class Dashboard
+    {
+        public const string Default = VietlifeStoreGroupName + ".Dashboard";
+        public const string View = Default + ".View";
+    }
 }

@@ -34,6 +34,12 @@ using VietlifeStore.Entity.VideoPlatform;
 using VietlifeStore.Configurations.VideoPlatform;
 using VietlifeStore.Entity.Payments;
 using VietlifeStore.Configurations.Payments;
+using VietlifeStore.ChucNang.DatLichs.DatLichVouchers;
+using VietlifeStore.ChucNang.DatLichs.DatLichGiamGiaSanPhams;
+using VietlifeStore.Configurations.DatLichGiamGias;
+using System.Reflection.Emit;
+using VietlifeStore.Configurations.Mails;
+using VietlifeStore.ChucNang.DatLichs.Emails;
 
 namespace VietlifeStore.EntityFrameworkCore;
 
@@ -100,6 +106,20 @@ public class VietlifeStoreDbContext :
     public DbSet<VoucherDaSuDung> VoucherDaSuDungs { get; set; }
     public DbSet<CamNangComment> CamNangComments { get; set; }
     public DbSet<SanPhamReview> SanPhamReviews { get; set; }
+    public DbSet<ChuongTrinhGiamGia> ChuongTrinhGiamGias { get; set; }
+    public DbSet<ChuongTrinhGiamGiaItem> ChuongTrinhGiamGiaItems { get; set; }
+
+    public DbSet<VoucherDoiTuong> VoucherDoiTuongs { get; set; }
+    public DbSet<VoucherNguoiDung> VoucherNguoiDungs { get; set; }
+    public DbSet<VoucherSchedule> VoucherSchedules { get; set; }
+
+    //Mail
+    public DbSet<EmailCampaign> EmailCampaigns { get; set; }
+    public DbSet<EmailTemplate> EmailTemplates { get; set; }
+    public DbSet<EmailQueue> EmailQueues { get; set; }
+    public DbSet<EmailLog> EmailLogs { get; set; }
+    public DbSet<EmailOpenTracking> EmailOpenTrackings { get; set; }
+    public DbSet<EmailUnsubscribe> EmailUnsubscribes { get; set; }
 
 
     #endregion
@@ -135,7 +155,6 @@ public class VietlifeStoreDbContext :
         builder.ApplyConfiguration(new ChinhSachConfiguration());
         builder.ApplyConfiguration(new DonHangConfiguration());
         builder.ApplyConfiguration(new ChiTietDonHangConfiguration());
-        builder.ApplyConfiguration(new VoucherConfiguration());
         builder.ApplyConfiguration(new DanhMucSanPhamConfiguration());
         builder.ApplyConfiguration(new SanPhamConfiguration());
         builder.ApplyConfiguration(new AnhSanPhamConfiguration());
@@ -150,10 +169,25 @@ public class VietlifeStoreDbContext :
         builder.ApplyConfiguration(new TaiKhoanConfiguration());
         builder.ApplyConfiguration(new SocialVideoConfigurator());
         builder.ApplyConfiguration(new PaymentInformationConfiguration());
-        builder.ApplyConfiguration(new VoucherDaSuDungConfiguration());
         builder.ApplyConfiguration(new CamNangCommentConfiguration());
         builder.ApplyConfiguration(new SanPhamReviewConfiguration());
 
+        builder.ApplyConfiguration(new ChuongTrinhGiamGiaConfiguration());
+        builder.ApplyConfiguration(new ChuongTrinhGiamGiaItemConfiguration());
+
+        builder.ApplyConfiguration(new VoucherConfiguration());
+        builder.ApplyConfiguration(new VoucherDaSuDungConfiguration());
+        builder.ApplyConfiguration(new VoucherNguoiDungConfiguration());
+        builder.ApplyConfiguration(new VoucherDoiTuongConfiguration());
+        builder.ApplyConfiguration(new VoucherScheduleConfiguration());
+
+        //mail
+        builder.ApplyConfiguration(new EmailCampaignConfiguration());
+        builder.ApplyConfiguration(new EmailTemplateConfiguration());
+        builder.ApplyConfiguration(new EmailQueueConfiguration());
+        builder.ApplyConfiguration(new EmailLogConfiguration());
+        builder.ApplyConfiguration(new EmailOpenTrackingConfiguration());
+        builder.ApplyConfiguration(new EmailUnsubscribeConfiguration());
         /* Configure your own tables/entities inside here */
 
         //builder.Entity<YourEntity>(b =>

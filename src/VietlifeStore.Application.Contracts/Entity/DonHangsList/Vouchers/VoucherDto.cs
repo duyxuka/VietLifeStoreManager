@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using VietlifeStore.ChucNang.DatLichs.DatLichVouchers;
 using Volo.Abp.Application.Dtos;
 
 namespace VietlifeStore.Entity.DonHangsList.Vouchers
@@ -11,14 +12,32 @@ namespace VietlifeStore.Entity.DonHangsList.Vouchers
     {
         public Guid Id { get; set; }
         public string MaVoucher { get; set; }
-        public decimal GiamGia { get; set; } // Giá trị giảm (phần trăm hoặc cố định)
-        public bool LaPhanTram { get; set; } = false; // True nếu giảm phần trăm
-        public string? JobId { get; set; }
-        public decimal DonHangToiThieu { get; set; } // Đơn hàng tối thiểu áp dụng
+        public string TenVoucher { get; set; }
+        public string MoTa { get; set; }
+
+        public LoaiVoucher LoaiVoucher { get; set; }
+        public PhamViVoucher PhamVi { get; set; }
+
+        public decimal GiamGia { get; set; }
+        public bool LaPhanTram { get; set; }
+        public decimal? GiamToiDa { get; set; }
+        public decimal DonHangToiThieu { get; set; }
+
+        public int TongSoLuong { get; set; }
+        public int DaDung { get; set; }
+        public int ConLai => TongSoLuong - DaDung;
+        public int GioiHanMoiUser { get; set; }
+
         public DateTime? ThoiHanBatDau { get; set; }
         public DateTime? ThoiHanKetThuc { get; set; }
-        public int SoLuong { get; set; } // Số lượng voucher có sẵn
-        public bool LaDatLich { get; set; } = false;
-        public bool TrangThai { get; set; } = false;
+        public bool ChiPhatHanhCuThe { get; set; }
+
+        public TrangThaiVoucher TrangThai { get; set; }
+        public List<Guid> SanPhamIds { get; set; } = new();
+        public List<Guid> DanhMucIds { get; set; } = new();
+
+        public bool DuDieuKien { get; set; }
+        public string LyDoKhongDuDieuKien { get; set; } = "";
+        public int? PhanTramDaDung { get; set; }
     }
 }

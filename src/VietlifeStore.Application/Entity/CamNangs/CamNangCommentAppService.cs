@@ -14,6 +14,7 @@ using Volo.Abp;
 using VietlifeStore.Entity.CamNangsList.DanhMucCamNangs;
 using VietlifeStore.Entity.SanPhamsList.QuaTangs;
 using Volo.Abp.ObjectMapping;
+using Microsoft.EntityFrameworkCore;
 
 namespace VietlifeStore.Entity.CamNangs
 {
@@ -51,43 +52,61 @@ namespace VietlifeStore.Entity.CamNangs
         [Authorize(VietlifeStorePermissions.CamNang.View)]
         public async Task<PagedResultDto<CamNangCommentInListDto>> GetListFilterAsync(BaseListFilterDto input)
         {
-            var commentQuery = await Repository.GetQueryableAsync();
-            var camNangQuery = await _camNangRepository.GetQueryableAsync();
+            // ================= QUERY COMMENTS =================
+            var commentQuery = (await Repository.GetQueryableAsync())
+                .AsNoTracking();
 
-            var query =
-                from comment in commentQuery
-                join camNang in camNangQuery
-                    on comment.CamNangId equals camNang.Id
-                select new { comment, camNang };
-
-            query = query
+            commentQuery = commentQuery
                 .WhereIf(!string.IsNullOrWhiteSpace(input.Keyword),
-                    x => x.comment.Email.Contains(input.Keyword))
+                    x => x.Email.Contains(input.Keyword)) // có thể đổi StartsWith nếu cần tối ưu hơn
                 .WhereIf(input.Id.HasValue,
-                    x => x.comment.CamNangId == input.Id);
+                    x => x.CamNangId == input.Id);
 
-            var totalCount = await AsyncExecuter.CountAsync(query);
+            // ================= COUNT =================
+            var totalCount = await AsyncExecuter.CountAsync(commentQuery);
 
-            var items = await AsyncExecuter.ToListAsync(
-                query
-                .OrderByDescending(x => x.comment.CreationTime)
-                .Skip(input.SkipCount)
-                .Take(input.MaxResultCount)
+            // ================= PAGING TRƯỚC =================
+            var comments = await AsyncExecuter.ToListAsync(
+                commentQuery
+                    .OrderByDescending(x => x.CreationTime)
+                    .Skip(input.SkipCount)
+                    .Take(input.MaxResultCount)
             );
 
-            var result = items.Select(x => new CamNangCommentInListDto
+            if (!comments.Any())
             {
-                Id = x.comment.Id,
-                CamNangId = x.comment.CamNangId,
-                CamNangTen = x.camNang.Ten,
-                TenNguoiDung = x.comment.TenNguoiDung,
-                Email = x.comment.Email,
-                NoiDung = x.comment.NoiDung,
-                TrangThai = x.comment.TrangThai,
-                ParentId = x.comment.ParentId,
-                CreationTime = x.comment.CreationTime
+                return new PagedResultDto<CamNangCommentInListDto>(0, new List<CamNangCommentInListDto>());
+            }
+
+            // ================= LẤY DANH SÁCH CAMNANG LIÊN QUAN =================
+            var camNangIds = comments
+                .Select(x => x.CamNangId)
+                .Distinct()
+                .ToList();
+
+            var camNangQuery = (await _camNangRepository.GetQueryableAsync())
+                .AsNoTracking()
+                .Where(x => camNangIds.Contains(x.Id));
+
+            var camNangs = await AsyncExecuter.ToListAsync(camNangQuery);
+
+            var camNangDict = camNangs.ToDictionary(x => x.Id, x => x.Ten);
+
+            // ================= MAP DTO =================
+            var result = comments.Select(x => new CamNangCommentInListDto
+            {
+                Id = x.Id,
+                CamNangId = x.CamNangId,
+                CamNangTen = camNangDict.TryGetValue(x.CamNangId, out var ten) ? ten : "",
+                TenNguoiDung = x.TenNguoiDung,
+                Email = x.Email,
+                NoiDung = x.NoiDung,
+                TrangThai = x.TrangThai,
+                ParentId = x.ParentId,
+                CreationTime = x.CreationTime
             }).ToList();
 
+            // ================= RETURN =================
             return new PagedResultDto<CamNangCommentInListDto>(
                 totalCount,
                 result
@@ -116,7 +135,7 @@ namespace VietlifeStore.Entity.CamNangs
                 if (!CurrentUser.IsAuthenticated)
                     throw new UserFriendlyException("Bạn cần đăng nhập để bình luận");
 
-                tenNguoiDung = CurrentUser.UserName;
+                tenNguoiDung = CurrentUser.Name;
                 email = CurrentUser.Email;
             }
 

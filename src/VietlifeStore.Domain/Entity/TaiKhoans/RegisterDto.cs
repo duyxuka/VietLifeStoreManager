@@ -14,6 +14,7 @@ namespace VietlifeStore.Entity.TaiKhoans
 
         public string Name { get; set; }
         public string PhoneNumber { get; set; }
+        public DateTime BirthDay { get; set; }
     }
 
 }

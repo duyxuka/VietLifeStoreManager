@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\VietlifeStore.Application.Contracts\VietlifeStore.Application.Contracts.csproj" />
+    <ProjectReference Include="..\VietlifeStore.Application\VietlifeStore.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

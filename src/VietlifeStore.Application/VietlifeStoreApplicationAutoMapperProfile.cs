@@ -1,4 +1,13 @@
 using AutoMapper;
+using System.Linq;
+using VietlifeStore.ChucNang.DatLichs.DatLichGiamGiaSanPhams;
+using VietlifeStore.ChucNang.DatLichs.DatLichGiamGiaSanPhams.ChuongTrinhGiamGiaItems;
+using VietlifeStore.ChucNang.DatLichs.DatLichGiamGiaSanPhams.ChuongTrinhGiamGias;
+using VietlifeStore.ChucNang.DatLichs.DatLichVouchers;
+using VietlifeStore.ChucNang.DatLichs.Emails;
+using VietlifeStore.ChucNang.DatLichs.Emails.EmailCampaigns;
+using VietlifeStore.ChucNang.DatLichs.Emails.EmailQueues;
+using VietlifeStore.ChucNang.DatLichs.Emails.EmailTemplates;
 using VietlifeStore.Entity.Banners;
 using VietlifeStore.Entity.CamNangs;
 using VietlifeStore.Entity.CamNangsList.CamNangComments;
@@ -103,7 +112,15 @@ public class VietlifeStoreApplicationAutoMapperProfile : Profile
 
         //Voucher
         CreateMap<CreateUpdateVoucherDto, Voucher>();
-        CreateMap<Voucher, VoucherDto>();
+        CreateMap<Voucher, VoucherDto>()
+            .ForMember(dest => dest.SanPhamIds, opt => opt.MapFrom(src =>
+                src.DoiTuongApDung
+                    .Where(x => x.LoaiDoiTuong == LoaiDoiTuong.SanPham)
+                    .Select(x => x.DoiTuongId).ToList()))
+            .ForMember(dest => dest.DanhMucIds, opt => opt.MapFrom(src =>
+                src.DoiTuongApDung
+                    .Where(x => x.LoaiDoiTuong == LoaiDoiTuong.DanhMuc)
+                    .Select(x => x.DoiTuongId).ToList()));
         CreateMap<Voucher, VoucherInListDto>();
 
         //LienHe
@@ -167,5 +184,30 @@ public class VietlifeStoreApplicationAutoMapperProfile : Profile
         CreateMap<SanPhamReview, SanPhamReviewDto>();
         CreateMap<CreateUpdateSanPhamReviewDto, SanPhamReview>();
         CreateMap<SanPhamReview, SanPhamReviewInListDto>();
+
+        CreateMap<ChuongTrinhGiamGia, ChuongTrinhDto>();
+        CreateMap<CreateUpdateChuongTrinhDto, ChuongTrinhGiamGia>()
+            .ForMember(dest => dest.Items, opt => opt.Ignore());
+        CreateMap<ChuongTrinhGiamGia, ChuongTrinhInListDto>()
+            .ForMember(dest => dest.SoLuongSanPham,
+                opt => opt.MapFrom(src => src.Items.Count));
+
+        CreateMap<ChuongTrinhGiamGiaItem, ChuongTrinhItemDto>();
+        CreateMap<CreateUpdateChuongTrinhItemDto, ChuongTrinhGiamGiaItem>();
+
+        //Mail
+        // EmailTemplate
+        CreateMap<EmailTemplate, EmailTemplateDto>();
+        CreateMap<CreateUpdateEmailTemplateDto, EmailTemplate>();
+        CreateMap<EmailTemplate, EmailTemplateInListDto>();
+
+        // EmailCampaign
+        CreateMap<EmailCampaign, EmailCampaignDto>();
+        CreateMap<CreateUpdateEmailCampaignDto, EmailCampaign>();
+        CreateMap<EmailCampaign, EmailCampaignInListDto>();
+
+        // EmailQueue
+        CreateMap<EmailQueue, EmailQueueDto>();
+
     }
 }

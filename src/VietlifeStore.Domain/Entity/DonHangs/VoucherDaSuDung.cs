@@ -12,7 +12,9 @@ namespace VietlifeStore.Entity.DonHangs
         public Guid VoucherId { get; set; }
         public Guid UserId { get; set; }
         public Guid DonHangId { get; set; }
+        public decimal GiaTriGiam { get; set; }          // Giá trị thực tế đã giảm (quan trọng!)
+        public DateTime NgaySuDung { get; set; } = DateTime.UtcNow;
 
-        public DateTime NgaySuDung { get; set; } = DateTime.Now;
+        public virtual Voucher Voucher { get; set; }
     }
 }

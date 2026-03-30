@@ -61,6 +61,11 @@ using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using OpenIddict.Server;
 using Volo.Abp.AspNetCore.Mvc.AntiForgery;
+using Hangfire;
+using VietlifeStore.ChucNang.DatLichs;
+using VietlifeStore.Web.Hangfire;
+using Volo.Abp.AspNetCore.SignalR;
+using VietlifeStore.Entity.DashboardStat;
 
 namespace VietlifeStore.Web;
 
@@ -76,7 +81,8 @@ namespace VietlifeStore.Web;
     typeof(AbpTenantManagementWebModule),
     typeof(AbpFeatureManagementWebModule),
     typeof(AbpSwashbuckleModule),
-    typeof(AbpAspNetCoreSerilogModule)
+    typeof(AbpAspNetCoreSerilogModule),
+    typeof(AbpAspNetCoreSignalRModule)
 )]
 public class VietlifeStoreWebModule : AbpModule
 {
@@ -174,6 +180,15 @@ public class VietlifeStoreWebModule : AbpModule
         {
             options.IsDynamicPermissionStoreEnabled = true;
         });
+        context.Services.AddHangfire(config =>
+        config.UseSqlServerStorage(
+            configuration.GetConnectionString("Default")));
+
+        context.Services.AddHangfireServer(options =>
+        {
+            options.Queues = new[] { "giam-gia", "default" };
+        });
+
     }
 
 
@@ -364,17 +379,6 @@ public class VietlifeStoreWebModule : AbpModule
         app.UseStaticFiles();
         app.UseCorrelationId();
         app.UseRouting();
-        app.UseHealthChecks("/health-status", new HealthCheckOptions
-        {
-            Predicate = _ => true,
-            ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse, // JSON chu?n cho UI
-            AllowCachingResponses = false
-        });
-        app.UseHealthChecksUI(options =>
-        {
-            options.UIPath = "/health-ui";
-            options.ApiPath = "/health-ui-api";
-        });
         app.UseCors();
         app.MapAbpStaticAssets();
         app.UseAbpStudioLink();
@@ -406,15 +410,37 @@ public class VietlifeStoreWebModule : AbpModule
         });
         app.UseAuditing();
         app.UseAbpSerilogEnrichers();
-        app.UseEndpoints(endpoints =>
+        app.UseHangfireDashboard("/hangfire", new DashboardOptions
         {
-            endpoints.MapControllers();
+            AsyncAuthorization = new[]
+        {
+            new HangfireAuthorizationFilter()
+        }
+        });
+        app.UseConfiguredEndpoints(endpoints =>
+        {
+            endpoints.MapHub<TrackingHub>("/hubs/tracking");
+            // ? Health check — WithOrder(-1) ?? ?u tiên cao h?n fallback SPA
+            endpoints.MapHealthChecks("/health-status", new HealthCheckOptions
+            {
+                Predicate = _ => true,
+                ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse,
+                AllowCachingResponses = false
+            }).WithOrder(-1);
+
+            endpoints.MapHealthChecksUI(options =>
+            {
+                options.UIPath = "/health-ui";
+                options.ApiPath = "/health-ui-api";
+            });
+
+            endpoints.MapHangfireDashboard("/hangfire");
+
             // ADMIN SPA
             endpoints.MapFallbackToFile("/admin/{*path:nonfile}", "admin/index.html");
 
-            // USER SPA
+            // USER SPA — luôn ??t CU?I CÙNG
             endpoints.MapFallbackToFile("{*path:nonfile}", "index.html");
         });
-        app.UseConfiguredEndpoints();
     }
 }

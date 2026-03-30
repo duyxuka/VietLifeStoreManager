@@ -121,6 +121,11 @@
 
     "Permission:PaymentInformationModel": "Đơn hàng VNPAY",
     "Permission:PaymentInformationModel.View": "Xem đơn hàng VNPAY",
-    "Permission:PaymentInformationModel.Delete": "Xóa đơn hàng VNPAY"
+    "Permission:PaymentInformationModel.Create": "Thêm đơn hàng VNPAY",
+    "Permission:PaymentInformationModel.Update": "Cập nhật đơn hàng VNPAY",
+    "Permission:PaymentInformationModel.Delete": "Xóa đơn hàng VNPAY",
+
+    "Permission:Dashboard": "Dashboard",
+    "Permission:Dashboard.View": "Xem Dashboard"
   }
 }

@@ -121,6 +121,11 @@
 
     "Permission:PaymentInformationModel": "Order VNPAY",
     "Permission:PaymentInformationModel.View": "View order VNPAY",
-    "Permission:PaymentInformationModel.Delete": "Delete order VNPAY"
+    "Permission:PaymentInformationModel.Delete": "Delete order VNPAY",
+    "Permission:PaymentInformationModel.Create": "Create order VNPAY",
+    "Permission:PaymentInformationModel.Update": "Update order VNPAY",
+
+    "Permission:Dashboard": "Dashboard",
+    "Permission:Dashboard.View": "View Dashboard"
   }
 }

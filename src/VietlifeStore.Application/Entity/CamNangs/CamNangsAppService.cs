@@ -204,8 +204,7 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
         public async Task<PagedResultDto<CamNangInListDto>> GetListFilterAsync(BaseListFilterDto input)
         {
             var camNangQueryable = (await Repository.GetQueryableAsync())
-                .AsNoTracking()
-                .Where(x => x.TrangThai);
+                .AsNoTracking();
 
             var danhMucQueryable = (await _danhMucRepo.GetQueryableAsync())
                 .AsNoTracking();

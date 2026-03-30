@@ -9,9 +9,9 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangComments
     public class CreateUpdateCamNangCommentDto
     {
         public Guid CamNangId { get; set; }
-        public string TenNguoiDung { get; set; }
+        public string? TenNguoiDung { get; set; }
 
-        public string Email { get; set; }
+        public string? Email { get; set; }
 
         public string NoiDung { get; set; }
 

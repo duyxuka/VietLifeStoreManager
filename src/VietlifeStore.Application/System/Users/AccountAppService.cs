@@ -100,7 +100,7 @@ namespace VietlifeStore.System.Users
             if (string.IsNullOrWhiteSpace(emailOrPhone))
                 throw new UserFriendlyException("Vui lòng nhập Email hoặc SĐT");
 
-            IdentityUser user = null;
+            Volo.Abp.Identity.IdentityUser user = null;
 
             if (emailOrPhone.Contains("@"))
             {

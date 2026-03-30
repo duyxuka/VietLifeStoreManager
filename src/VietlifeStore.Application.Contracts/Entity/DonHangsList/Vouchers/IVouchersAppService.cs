@@ -16,7 +16,7 @@ namespace VietlifeStore.Entity.DonHangsList.Vouchers
          CreateUpdateVoucherDto>
     {
         Task<PagedResultDto<VoucherInListDto>> GetListFilterAsync(BaseListFilterDto input);
-        Task<List<VoucherInListDto>> GetListAllAsync();
+        Task<List<VoucherInListDto>> GetListAllAsync(int? phamVi = null, Guid? sanPhamId = null, Guid? danhMucId = null);
         Task DeleteMultipleAsync(IEnumerable<Guid> ids);
     }
 }

@@ -18,6 +18,8 @@ using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Uow;
 using Volo.Abp.Users;
 using VietlifeStore.Entity.SanPhams;
+using Hangfire;
+using VietlifeStore.ChucNang.DatLichs.DatLichVouchers;
 
 namespace VietlifeStore.Entity.DonHangs
 {
@@ -34,22 +36,29 @@ namespace VietlifeStore.Entity.DonHangs
         private readonly IRepository<ChiTietDonHang, Guid> _chiTietRepo;
         private readonly IRepository<Voucher, Guid> _voucherRepo;
         private readonly IRepository<VoucherDaSuDung, Guid> _voucherUsedRepo;
+        private readonly IRepository<VoucherNguoiDung, Guid> _voucherUserRepo;
         private readonly IConfiguration _configuration;
         private readonly IRepository<SanPham, Guid> _sanPhamRepo;
+        private readonly IBackgroundJobClient _backgroundJobClient;
 
         public DonHangsAppService(
             IRepository<DonHang, Guid> repository,
             IRepository<ChiTietDonHang, Guid> chiTietRepo,
             IRepository<Voucher, Guid> voucherRepo,
             IRepository<VoucherDaSuDung, Guid> voucherUsedRepo,
+            IRepository<VoucherNguoiDung, Guid> voucherUserRepo,
             IConfiguration configuration,
-            IRepository<SanPham, Guid> sanPhamRepo)
+            IRepository<SanPham, Guid> sanPhamRepo,
+            IBackgroundJobClient backgroundJobClient)
             : base(repository)
         {
             _chiTietRepo = chiTietRepo;
             _voucherRepo = voucherRepo;
             _voucherUsedRepo = voucherUsedRepo;
+            _voucherUserRepo = voucherUserRepo;
             _sanPhamRepo = sanPhamRepo;
+            _backgroundJobClient = backgroundJobClient;
+            _configuration = configuration;
 
             GetPolicyName = VietlifeStorePermissions.DonHang.View;
             GetListPolicyName = VietlifeStorePermissions.DonHang.View;
@@ -111,63 +120,38 @@ namespace VietlifeStore.Entity.DonHangs
         }
 
         // ================= CREATE =================
+        [Authorize]
         public override async Task<DonHangDto> CreateAsync(CreateUpdateDonHangDto input)
         {
             var donHang = ObjectMapper.Map<CreateUpdateDonHangDto, DonHang>(input);
 
             donHang.NgayDat = DateTime.Now;
             donHang.Ma = await GenerateOrderCodeAsync();
-            donHang.GiamGiaVoucher = input.GiamGiaVoucher;
+            donHang.GiamGiaVoucher = 0;
 
             await Repository.InsertAsync(donHang, autoSave: true);
 
+            // Lưu chi tiết + tính TongTien trước (cần TongTien gốc để tính giảm giá)
+            await SaveChiTietAsync(donHang, input.ChiTietDonHangs);
+
+            // Xử lý voucher nếu có — dùng TongTien vừa tính từ chi tiết
             if (input.VoucherId.HasValue)
             {
-                var voucher = await _voucherRepo.GetAsync(input.VoucherId.Value);
+                var tongTienGoc = donHang.TongTien; // decimal, không nullable
+                var giaTriGiam = await XuLyVoucherAsync(
+                    input.VoucherId.Value,
+                    donHang.Id,
+                    tongTienGoc
+                );
 
-                if (!voucher.TrangThai)
-                    throw new UserFriendlyException("Voucher không hợp lệ");
-
-                if (voucher.SoLuong <= 0)
-                    throw new UserFriendlyException("Voucher đã hết");
-
-                if (voucher.ThoiHanBatDau.HasValue && DateTime.Now < voucher.ThoiHanBatDau)
-                    throw new UserFriendlyException("Voucher chưa bắt đầu");
-
-                if (voucher.ThoiHanKetThuc.HasValue && DateTime.Now > voucher.ThoiHanKetThuc)
-                    throw new UserFriendlyException("Voucher đã hết hạn");
-
-                var userId = CurrentUser.GetId();
-
-                var used = await _voucherUsedRepo.AnyAsync(x =>
-                    x.UserId == userId &&
-                    x.VoucherId == voucher.Id);
-
-                if (used)
-                    throw new UserFriendlyException("Bạn đã sử dụng voucher này");
-
-                voucher.SoLuong--;
-                await _voucherRepo.UpdateAsync(voucher);
-
-                await _voucherUsedRepo.InsertAsync(new VoucherDaSuDung
-                {
-                    VoucherId = voucher.Id,
-                    UserId = userId,
-                    DonHangId = donHang.Id
-                });
+                donHang.GiamGiaVoucher = giaTriGiam;
+                donHang.TongTien = Math.Max(tongTienGoc - giaTriGiam, 0);
             }
 
-            await SaveChiTietAsync(donHang, input.ChiTietDonHangs);
-            if (donHang.GiamGiaVoucher.HasValue)
-            {
-                donHang.TongTien -= donHang.GiamGiaVoucher.Value;
-
-                if (donHang.TongTien < 0)
-                    donHang.TongTien = 0;
-            }
 
             await UnitOfWorkManager.Current.SaveChangesAsync();
-            _ = Task.Run(() => SendEmailOrderSuccess(donHang));
+            _backgroundJobClient.Enqueue<DonHangEmailJob>(
+                job => job.SendOrderSuccessAsync(donHang.Id));
 
             return ObjectMapper.Map<DonHang, DonHangDto>(donHang);
         }
@@ -369,111 +353,6 @@ namespace VietlifeStore.Entity.DonHangs
             return code;
         }
 
-        private async Task SendEmailOrderSuccess(DonHang order)
-        {
-            var date = DateTime.Now;
-
-            var smtpSection = _configuration.GetSection("Abp:Mailing:Smtp");
-
-            var host = smtpSection["Host"];
-            var port = int.Parse(smtpSection["Port"]);
-            var username = smtpSection["UserName"];
-            var password = smtpSection["Password"];
-            var enableSsl = bool.Parse(smtpSection["EnableSsl"]);
-
-            var senderEmail = new MailAddress(username, "Vietlife Store");
-            var receiverEmail = new MailAddress(order.Email);
-
-            var details = await _chiTietRepo.GetListAsync(x => x.DonHangId == order.Id);
-
-            var productIds = details.Select(x => x.SanPhamId).ToList();
-
-            var products = await AsyncExecuter.ToListAsync(
-                (await _sanPhamRepo.GetQueryableAsync())
-                .Where(x => productIds.Contains(x.Id))
-            );
-
-            string productDetails = "<table style='width:100%;border-collapse:collapse;'>"
-            + "<thead>"
-            + "<tr style='background:#f2f2f2;'>"
-            + "<th style='padding:10px;border:1px solid #ddd;'>Tên sản phẩm</th>"
-            + "<th style='padding:10px;border:1px solid #ddd;'>Ảnh</th>"
-            + "<th style='padding:10px;border:1px solid #ddd;'>Biến thể</th>"
-            + "<th style='padding:10px;border:1px solid #ddd;'>Quà tặng</th>"
-            + "<th style='padding:10px;border:1px solid #ddd;'>Số lượng</th>"
-            + "<th style='padding:10px;border:1px solid #ddd;'>Giá</th>"
-            + "<th style='padding:10px;border:1px solid #ddd;'>Tổng</th>"
-            + "</tr>"
-            + "</thead><tbody>";
-
-            foreach (var item in details)
-            {
-                var product = products.FirstOrDefault(x => x.Id == item.SanPhamId);
-
-                var image = product?.Anh ?? "";
-
-                productDetails += "<tr>"
-                + $"<td style='padding:10px;border:1px solid #ddd'>{product?.Ten}</td>"
-                + $"<td style='padding:10px;border:1px solid #ddd'><img src='http://42.96.61.186:8090/files/{image}' width='80'/></td>"
-                + $"<td style='padding:10px;border:1px solid #ddd'>{item.SanPhamBienThe}</td>"
-                + $"<td style='padding:10px;border:1px solid #ddd'>{item.QuaTang}</td>"
-                + $"<td style='padding:10px;border:1px solid #ddd'>{item.SoLuong}</td>"
-                + $"<td style='padding:10px;border:1px solid #ddd'>{item.Gia:#,##0} VNĐ</td>"
-                + $"<td style='padding:10px;border:1px solid #ddd'>{(item.Gia * item.SoLuong):#,##0} VNĐ</td>"
-                + "</tr>";
-            }
-
-            productDetails += $"<tr style='text-align:right'>"
-            + $"<td colspan='6' style='padding:15px;border:1px solid #ddd'><b>Tổng tiền:</b></td>"
-            + $"<td style='padding:15px;border:1px solid #ddd'><b>{order.TongTien:#,##0} VNĐ</b></td>"
-            + "</tr>";
-
-            productDetails += "</tbody></table>";
-
-            string accountorder =
-            "<table style='width:100%;border-collapse:collapse;'>"
-            + "<tr style='background:#f2f2f2'>"
-            + "<th style='padding:10px;border:1px solid #ddd'>Khách hàng</th>"
-            + "<th style='padding:10px;border:1px solid #ddd'>SĐT</th>"
-            + "<th style='padding:10px;border:1px solid #ddd'>Địa chỉ</th>"
-            + "<th style='padding:10px;border:1px solid #ddd'>Thanh toán</th>"
-            + "</tr>"
-            + "<tr>"
-            + $"<td style='padding:10px;border:1px solid #ddd'>{order.Ten}</td>"
-            + $"<td style='padding:10px;border:1px solid #ddd'>{order.SoDienThoai}</td>"
-            + $"<td style='padding:10px;border:1px solid #ddd'>{order.DiaChi}</td>"
-            + $"<td style='padding:10px;border:1px solid #ddd'>{order.PhuongThucThanhToan}</td>"
-            + "</tr></table>";
-
-            string body =
-            "<div style='font-family:Arial;font-size:14px'>"
-            + "<h2 style='color:#10cb04'>Bạn đã đặt hàng thành công tại Vietlife Store</h2>"
-            + $"<p>Mã đơn hàng: <b>{order.Ma}</b></p>"
-            + $"<p>Ngày đặt: {date:dd/MM/yyyy HH:mm}</p>"
-            + "<h3>Thông tin khách hàng</h3>"
-            + accountorder
-            + "<h3>Chi tiết đơn hàng</h3>"
-            + productDetails
-            + "<p>Chúng tôi sẽ liên hệ xác nhận đơn hàng sớm.</p>"
-            + "</div>";
-
-            using (var smtp = new SmtpClient(host, port))
-            {
-                smtp.Credentials = new NetworkCredential(username, password);
-                smtp.EnableSsl = enableSsl;
-
-                using (var message = new MailMessage(senderEmail, receiverEmail)
-                {
-                    Subject = $"Xác nhận đơn hàng #{order.Ma}",
-                    Body = body,
-                    IsBodyHtml = true
-                })
-                {
-                    await smtp.SendMailAsync(message);
-                }
-            }
-        }
-
         [Authorize]
         public async Task CancelOrderAsync(Guid id)
         {
@@ -490,86 +369,88 @@ namespace VietlifeStore.Entity.DonHangs
 
             await UnitOfWorkManager.Current.SaveChangesAsync();
 
-            _ = Task.Run(() => SendEmailCancelOrder(order));
+            _backgroundJobClient.Enqueue<DonHangEmailJob>(
+                job => job.SendCancelOrderAsync(order.Id));
         }
 
-        private async Task SendEmailCancelOrder(DonHang order)
+        private async Task<decimal> XuLyVoucherAsync(
+            Guid voucherId,
+            Guid donHangId,
+            decimal tongTienTruocGiam)
         {
-            var smtpSection = _configuration.GetSection("Abp:Mailing:Smtp");
+            var userId = CurrentUser.GetId();
+            var now = DateTime.UtcNow;
 
-            var host = smtpSection["Host"];
-            var port = int.Parse(smtpSection["Port"]);
-            var username = smtpSection["UserName"];
-            var password = smtpSection["Password"];
-            var enableSsl = bool.Parse(smtpSection["EnableSsl"]);
+            var voucher = await _voucherRepo.GetAsync(voucherId);
 
-            var senderEmail = new MailAddress(username, "Vietlife Store");
-            var receiverEmail = new MailAddress(order.Email);
+            // --- Validate trạng thái ---
+            if (voucher.TrangThai != TrangThaiVoucher.DangHoatDong)
+                throw new UserFriendlyException("Voucher không còn hoạt động.");
 
-            var details = await _chiTietRepo.GetListAsync(x => x.DonHangId == order.Id);
+            if (voucher.DaDung >= voucher.TongSoLuong)
+                throw new UserFriendlyException("Voucher đã hết số lượng.");
 
-            var productIds = details.Select(x => x.SanPhamId).ToList();
+            if (voucher.ThoiHanBatDau.HasValue && now < voucher.ThoiHanBatDau.Value)
+                throw new UserFriendlyException("Voucher chưa đến thời gian sử dụng.");
 
-            var products = await AsyncExecuter.ToListAsync(
-                (await _sanPhamRepo.GetQueryableAsync())
-                .Where(x => productIds.Contains(x.Id))
-            );
+            if (voucher.ThoiHanKetThuc.HasValue && now > voucher.ThoiHanKetThuc.Value)
+                throw new UserFriendlyException("Voucher đã hết hạn.");
 
-            string productList = "";
+            if (tongTienTruocGiam < voucher.DonHangToiThieu)
+                throw new UserFriendlyException(
+                    $"Đơn hàng tối thiểu {voucher.DonHangToiThieu:N0}đ mới được áp dụng voucher.");
 
-            foreach (var item in details)
+            // --- Kiểm tra giới hạn / user ---
+            var soLanDaDung = await _voucherUsedRepo
+                .CountAsync(x => x.VoucherId == voucherId && x.UserId == userId);
+
+            if (soLanDaDung >= voucher.GioiHanMoiUser)
+                throw new UserFriendlyException("Bạn đã dùng hết lượt cho voucher này.");
+
+            // --- Kiểm tra ví nếu voucher phát hành riêng ---
+            if (voucher.ChiPhatHanhCuThe)
             {
-                var product = products.FirstOrDefault(x => x.Id == item.SanPhamId);
+                var viVoucher = await _voucherUserRepo
+                    .FirstOrDefaultAsync(x => x.VoucherId == voucherId && x.UserId == userId)
+                    ?? throw new UserFriendlyException("Bạn không có voucher này trong ví.");
 
-                productList +=
-                "<tr>"
-                + $"<td style='padding:8px;border:1px solid #ddd'>{product?.Ten}-{item.SanPhamBienThe}</td>"
-                + $"<td style='padding:8px;border:1px solid #ddd'>{item.SoLuong}</td>"
-                + $"<td style='padding:8px;border:1px solid #ddd'>{item.Gia:#,##0} VNĐ</td>"
-                + "</tr>";
+                if ((viVoucher.SoLuongNhan - viVoucher.DaDung) <= 0)
+                    throw new UserFriendlyException("Bạn đã dùng hết voucher này.");
+
+                // Trừ lượt trong ví
+                viVoucher.DaDung++;
+                await _voucherUserRepo.UpdateAsync(viVoucher);
             }
 
-            string body =
-            "<div style='font-family:Arial;font-size:14px'>"
-            + "<h2 style='color:#ff4d4f'>Đơn hàng đã được hủy</h2>"
-            + $"<p>Mã đơn hàng: <b>{order.Ma}</b></p>"
-            + $"<p>Khách hàng: <b>{order.Ten}</b></p>"
-            + $"<p>Số điện thoại: {order.SoDienThoai}</p>"
-            + $"<p>Địa chỉ: {order.DiaChi}</p>"
+            // --- Tính giá trị giảm ---
+            decimal giaTriGiam = voucher.LaPhanTram
+                ? tongTienTruocGiam * voucher.GiamGia / 100m
+                : voucher.GiamGia;
 
-            + "<h3>Danh sách sản phẩm</h3>"
+            if (voucher.GiamToiDa.HasValue)
+                giaTriGiam = Math.Min(giaTriGiam, voucher.GiamToiDa.Value);
 
-            + "<table style='width:100%;border-collapse:collapse'>"
-            + "<tr style='background:#f5f5f5'>"
-            + "<th style='padding:8px;border:1px solid #ddd'>Sản phẩm</th>"
-            + "<th style='padding:8px;border:1px solid #ddd'>Số lượng</th>"
-            + "<th style='padding:8px;border:1px solid #ddd'>Giá</th>"
-            + "</tr>"
-            + productList
-            + "</table>"
+            giaTriGiam = Math.Min(giaTriGiam, tongTienTruocGiam);
+            giaTriGiam = Math.Round(giaTriGiam, 0);
 
-            + $"<p style='margin-top:20px'>Tổng tiền đơn hàng: <b>{order.TongTien:#,##0} VNĐ</b></p>"
-
-            + "<p style='color:#999'>Nếu đây là nhầm lẫn vui lòng đặt lại đơn hàng.</p>"
-
-            + "<p>Cảm ơn bạn đã quan tâm đến Vietlife Store.</p>"
-            + "</div>";
-
-            using (var smtp = new SmtpClient(host, port))
+            // --- Ghi lịch sử ---
+            await _voucherUsedRepo.InsertAsync(new VoucherDaSuDung
             {
-                smtp.Credentials = new NetworkCredential(username, password);
-                smtp.EnableSsl = enableSsl;
+                VoucherId = voucherId,
+                UserId = userId,
+                DonHangId = donHangId,
+                GiaTriGiam = giaTriGiam,
+                NgaySuDung = now,
+            });
 
-                using (var message = new MailMessage(senderEmail, receiverEmail)
-                {
-                    Subject = $"Đơn hàng #{order.Ma} đã bị hủy",
-                    Body = body,
-                    IsBodyHtml = true
-                })
-                {
-                    await smtp.SendMailAsync(message);
-                }
-            }
+            // --- Tăng DaDung, kiểm tra hết số lượng ---
+            voucher.DaDung++;
+            if (voucher.DaDung >= voucher.TongSoLuong)
+                voucher.TrangThai = TrangThaiVoucher.HetSoLuong;
+
+            await _voucherRepo.UpdateAsync(voucher);
+
+            return giaTriGiam;
         }
     }
 }
