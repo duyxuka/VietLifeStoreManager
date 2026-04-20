@@ -87,13 +87,12 @@ namespace VietlifeStore.Entity.SocialVideos
             var query = (await Repository.GetQueryableAsync())
                 .WhereIf(!string.IsNullOrWhiteSpace(input.Keyword),
                     x => x.Title.Contains(input.Keyword) ||
-                         x.Platform.Contains(input.Keyword) ||
                          x.Section.Contains(input.Keyword));
 
             var totalCount = await AsyncExecuter.LongCountAsync(query);
 
             var items = await AsyncExecuter.ToListAsync(
-                query.OrderByDescending(x => x.CreationTime)
+                query.OrderBy(x => x.DisplayOrder)
                      .Skip(input.SkipCount)
                      .Take(input.MaxResultCount)
             );

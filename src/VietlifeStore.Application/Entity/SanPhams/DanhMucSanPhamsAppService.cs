@@ -208,7 +208,10 @@ namespace VietlifeStore.Entity.SanPhams
                     AnhThumbnail = dm.AnhThumbnail,
                     AnhBanner = dm.AnhBanner,
                     TrangThai = dm.TrangThai,
-                    SoLuongSanPham = sanPhamGroup.Count(x => x.TrangThai)
+                    SoLuongSanPham = sanPhamGroup.Count(x => x.TrangThai),
+                    TitleSEO = dm.TitleSEO,
+                    Keyword = dm.Keyword,
+                    DescriptionSEO = dm.DescriptionSEO
                 };
 
             return await AsyncExecuter.ToListAsync(query);

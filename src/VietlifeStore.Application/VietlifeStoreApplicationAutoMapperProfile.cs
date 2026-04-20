@@ -13,6 +13,7 @@ using VietlifeStore.Entity.CamNangs;
 using VietlifeStore.Entity.CamNangsList.CamNangComments;
 using VietlifeStore.Entity.CamNangsList.CamNangs;
 using VietlifeStore.Entity.CamNangsList.DanhMucCamNangs;
+using VietlifeStore.Entity.CamNangsList.TinTucs;
 using VietlifeStore.Entity.ChinhSachs;
 using VietlifeStore.Entity.ChinhSachsList.ChinhSachs;
 using VietlifeStore.Entity.ChinhSachsList.DanhMucChinhSachs;
@@ -32,6 +33,7 @@ using VietlifeStore.Entity.SanPhamsList.SanPhamBienTheThuocTinhs;
 using VietlifeStore.Entity.SanPhamsList.SanPhamReviews;
 using VietlifeStore.Entity.SanPhamsList.SanPhams;
 using VietlifeStore.Entity.SanPhamsList.ThuocTinhs;
+using VietlifeStore.Entity.SEOs;
 using VietlifeStore.Entity.TaiKhoans;
 using VietlifeStore.Entity.Videoplatform;
 using VietlifeStore.Entity.VideoPlatform;
@@ -209,5 +211,14 @@ public class VietlifeStoreApplicationAutoMapperProfile : Profile
         // EmailQueue
         CreateMap<EmailQueue, EmailQueueDto>();
 
+        //SEO
+        CreateMap<SeoConfig, SeoConfigDto>();
+        CreateMap<CreateUpdateSeoConfigDto, SeoConfig>();
+        CreateMap<SeoConfig, SeoConfigInListDto>();
+
+        //TinTuc
+        CreateMap<CreateUpdateTinTucDto, TinTuc>();
+        CreateMap<TinTuc, TinTucDto>();
+        CreateMap<TinTuc, TinTucInListDto>().ForMember(dest => dest.CreationTime, opt => opt.MapFrom(src => src.CreationTime));
     }
 }

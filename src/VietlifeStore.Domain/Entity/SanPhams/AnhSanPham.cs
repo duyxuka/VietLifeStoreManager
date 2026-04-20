@@ -13,6 +13,7 @@ namespace VietlifeStore.Entity.SanPhams
         public string? Anh { get; set; }
         public bool Status { get; set; } = true;
         public Guid SanPhamId { get; set; }
+        public int? ThuTu { get; set; }
         public virtual SanPham SanPham { get; set; }
     }
 }

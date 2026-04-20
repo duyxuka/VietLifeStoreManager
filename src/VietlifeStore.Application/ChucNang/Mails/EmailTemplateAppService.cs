@@ -12,6 +12,7 @@ using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.ObjectMapping;
 using Volo.Abp;
+using VietlifeStore.Permissions;
 
 namespace VietlifeStore.ChucNang.Mails
 {
@@ -28,15 +29,15 @@ namespace VietlifeStore.ChucNang.Mails
         public EmailTemplateAppService(IRepository<EmailTemplate, Guid> repository)
             : base(repository)
         {
-            //GetPolicyName = EmailPermissions.Template.Default;
-            //GetListPolicyName = EmailPermissions.Template.Default;
-            //CreatePolicyName = EmailPermissions.Template.Create;
-            //UpdatePolicyName = EmailPermissions.Template.Update;
-            //DeletePolicyName = EmailPermissions.Template.Delete;
+            GetPolicyName = VietlifeStorePermissions.EmailTemplate.Default;
+            GetListPolicyName = VietlifeStorePermissions.EmailTemplate.View;
+            CreatePolicyName = VietlifeStorePermissions.EmailTemplate.Create;
+            UpdatePolicyName = VietlifeStorePermissions.EmailTemplate.Update;
+            DeletePolicyName = VietlifeStorePermissions.EmailTemplate.Delete;
         }
 
         // ================= CREATE =================
-        //[Authorize(EmailPermissions.Template.Create)]
+        [Authorize(VietlifeStorePermissions.EmailTemplate.Create)]
         public override async Task<EmailTemplateDto> CreateAsync(CreateUpdateEmailTemplateDto input)
         {
             if (string.IsNullOrWhiteSpace(input.NoiDungHtml))
@@ -56,7 +57,7 @@ namespace VietlifeStore.ChucNang.Mails
         }
 
         // ================= UPDATE =================
-        //[Authorize(EmailPermissions.Template.Update)]
+        [Authorize(VietlifeStorePermissions.EmailTemplate.Update)]
         public override async Task<EmailTemplateDto> UpdateAsync(Guid id, CreateUpdateEmailTemplateDto input)
         {
             var entity = await Repository.GetAsync(id);
@@ -72,14 +73,14 @@ namespace VietlifeStore.ChucNang.Mails
         }
 
         // ================= DELETE SINGLE =================
-        //[Authorize(EmailPermissions.Template.Delete)]
+        [Authorize(VietlifeStorePermissions.EmailTemplate.Delete)]
         public override async Task DeleteAsync(Guid id)
         {
             await base.DeleteAsync(id);
         }
 
         // ================= DELETE MULTIPLE =================
-        //[Authorize(EmailPermissions.Template.Delete)]
+        [Authorize(VietlifeStorePermissions.EmailTemplate.Delete)]
         public async Task DeleteMultipleAsync(IEnumerable<Guid> ids)
         {
             var list = await Repository.GetListAsync(x => ids.Contains(x.Id));
@@ -87,6 +88,7 @@ namespace VietlifeStore.ChucNang.Mails
         }
 
         // ================= GET ALL ACTIVE =================
+        [Authorize(VietlifeStorePermissions.EmailTemplate.View)]
         public async Task<List<EmailTemplateInListDto>> GetListAllActiveAsync()
         {
             var list = await AsyncExecuter.ToListAsync(
@@ -98,6 +100,7 @@ namespace VietlifeStore.ChucNang.Mails
         }
 
         // ================= FILTER + PAGING =================
+        [Authorize(VietlifeStorePermissions.EmailTemplate.View)]
         public async Task<PagedResultDto<EmailTemplateInListDto>> GetListFilterAsync(BaseListFilterDto input)
         {
             var query = (await Repository.GetQueryableAsync())

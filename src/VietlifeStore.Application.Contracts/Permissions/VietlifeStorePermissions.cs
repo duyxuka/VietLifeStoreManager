@@ -185,4 +185,50 @@ public static class VietlifeStorePermissions
         public const string Default = VietlifeStoreGroupName + ".Dashboard";
         public const string View = Default + ".View";
     }
+
+    public static class ChuongTrinhGiamGia
+    {
+        public const string Default = VietlifeStoreGroupName + ".ChuongTrinhGiamGia";
+        public const string View = Default + ".View";
+        public const string Create = Default + ".Create";
+        public const string Update = Default + ".Update";
+        public const string Delete = Default + ".Delete";
+    }
+
+    public static class EmailTemplate
+    {
+        public const string Default = VietlifeStoreGroupName + ".EmailTemplate";
+        public const string View = Default + ".View";
+        public const string Create = Default + ".Create";
+        public const string Update = Default + ".Update";
+        public const string Delete = Default + ".Delete";
+    }
+
+    public static class EmailCampaign
+    {
+        public const string Default = VietlifeStoreGroupName + ".EmailCampaign";
+        public const string View = Default + ".View";
+        public const string Create = Default + ".Create";
+        public const string Update = Default + ".Update";
+        public const string Delete = Default + ".Delete";
+        public const string Send = Default + ".Send";
+    }
+
+    public static class SeoConfig
+    {
+        public const string Default = VietlifeStoreGroupName + ".SeoConfig";
+        public const string View = Default + ".View";
+        public const string Create = Default + ".Create";
+        public const string Update = Default + ".Update";
+        public const string Delete = Default + ".Delete";
+    }
+
+    public static class TinTuc
+    {
+        public const string Default = VietlifeStoreGroupName + ".TinTuc";
+        public const string View = Default + ".View";
+        public const string Create = Default + ".Create";
+        public const string Update = Default + ".Update";
+        public const string Delete = Default + ".Delete";
+    }
 }

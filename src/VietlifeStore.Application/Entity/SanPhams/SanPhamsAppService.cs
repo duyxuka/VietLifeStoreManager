@@ -106,7 +106,15 @@ namespace VietlifeStore.Entity.SanPhams
             dto.PhanTramGiamGia = TinhPhanTramGiam(dto.Gia, dto.GiaKhuyenMai);
 
             var anhPhuList = await _anhRepo.GetListAsync(x => x.SanPhamId == id);
-            dto.AnhPhu = anhPhuList.Select(x => x.Anh).ToList();
+
+            dto.AnhPhu = anhPhuList.OrderBy(x => x.ThuTu ?? 999).Select(x => x.Anh).ToList();
+
+            // ✅ Thêm data kèm ThuTu
+            dto.AnhPhuData = anhPhuList
+                .OrderBy(x => x.ThuTu ?? 999)
+                .Select(x => new AnhSanPhamDto { Anh = x.Anh, ThuTu = x.ThuTu })
+                .ToList();
+
             var bienThes = await _bienTheRepo.GetListAsync(x => x.SanPhamId == id);
             var bienTheIds = bienThes.Select(x => x.Id).ToList();
 
@@ -156,7 +164,16 @@ namespace VietlifeStore.Entity.SanPhams
             if (input.AnhPhu?.Any() == true)
             {
                 var images = input.AnhPhu
-                    .Select(x => new AnhSanPham { SanPhamId = sanPham.Id, Anh = x })
+                    .Select((x, idx) => new AnhSanPham
+                    {
+                        SanPhamId = sanPham.Id,
+                        Anh = x,
+                        Status = true,
+                        // ✅ Lấy ThuTu từ AnhPhuThuTus nếu có
+                        ThuTu = input.AnhPhuThuTus != null && idx < input.AnhPhuThuTus.Count
+                                ? input.AnhPhuThuTus[idx]
+                                : idx
+                    })
                     .ToList();
 
                 await _anhRepo.InsertManyAsync(images, autoSave: true);
@@ -223,14 +240,39 @@ namespace VietlifeStore.Entity.SanPhams
 
             await _anhRepo.DeleteManyAsync(imagesToDelete);
 
+            if (input.AnhPhuGiuLaiThuTus?.Any() == true)
+            {
+                var keptImages = keepList
+                    .Select((fileName, idx) => new { fileName, idx })
+                    .Join(oldImages,
+                          k => k.fileName,
+                          img => img.Anh,
+                          (k, img) => new { img, k.idx })
+                    .ToList();
+
+                foreach (var item in keptImages)
+                {
+                    if (item.idx < input.AnhPhuGiuLaiThuTus.Count)
+                    {
+                        item.img.ThuTu = input.AnhPhuGiuLaiThuTus[item.idx];
+                        await _anhRepo.UpdateAsync(item.img);
+                    }
+                }
+            }
+
             // Thêm ảnh mới
             if (input.AnhPhu?.Any() == true)
             {
                 var newImages = input.AnhPhu
-                    .Select(fileName => new AnhSanPham
+                    .Select((fileName, idx) => new AnhSanPham
                     {
-                        SanPhamId = id,
-                        Anh = fileName
+                        SanPhamId = id, // hoặc sanPham.Id khi Create
+                        Anh = fileName,
+                        Status = true,
+                        // Lấy ThuTu từ list song song nếu DTO có AnhPhuThuTus
+                        ThuTu = input.AnhPhuThuTus != null && idx < input.AnhPhuThuTus.Count
+                                ? input.AnhPhuThuTus[idx]
+                                : idx
                     })
                     .ToList();
 
@@ -847,6 +889,7 @@ namespace VietlifeStore.Entity.SanPhams
             var sanPhamQuery = await Repository.GetQueryableAsync();
             var quaTangQuery = await _quaTangRepo.GetQueryableAsync();
             var bienTheQuery = await _bienTheRepo.GetQueryableAsync();
+            var danhMucQueryable = await _danhMucRepo.GetQueryableAsync();
 
             var query =
                 from ct in chiTietQuery
@@ -865,6 +908,9 @@ namespace VietlifeStore.Entity.SanPhams
                 join sp in sanPhamQuery
                     on topSp.SanPhamId equals sp.Id
 
+                join dm in danhMucQueryable
+                    on sp.DanhMucId equals dm.Id
+
                 join qt in quaTangQuery
                     on sp.QuaTangId equals qt.Id into giftGroup
                 from gift in giftGroup.DefaultIfEmpty()
@@ -877,6 +923,7 @@ namespace VietlifeStore.Entity.SanPhams
                     Id = sp.Id,
                     Ten = sp.Ten,
                     Slug = sp.Slug,
+                    DanhMucSlug = dm.Slug,
                     Gia = sp.Gia,
                     GiaKhuyenMai = sp.GiaKhuyenMai,
                     Anh = sp.Anh,
@@ -974,6 +1021,7 @@ namespace VietlifeStore.Entity.SanPhams
             // QUERY 2: ảnh phụ
             dto.AnhPhu = (await _anhRepo
                 .GetListAsync(x => x.SanPhamId == dto.Id))
+                .OrderBy(x => x.ThuTu)
                 .Select(x => x.Anh)
                 .ToList();
 

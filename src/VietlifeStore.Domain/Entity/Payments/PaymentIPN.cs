@@ -8,22 +8,19 @@ namespace VietlifeStore.Entity.Payments
 {
     public class PaymentIPN
     {
-        public PaymentIPN()
-        {
+        public string RspCode { get; set; }
+        public string Message { get; set; }
 
-        }
-        public PaymentIPN(string rspCode, string massge)
-        {
-            RspCode = rspCode;
-            Message = massge;
-        }
-        public void Set(string rspCode, string massge)
-        {
-            RspCode = rspCode;
-            Message = massge;
-        }
-        public string RspCode { get; set; } = string.Empty;
-        public string Message { get; set; } = string.Empty;
+        // Thêm các property này
+        public string OrderId { get; set; }
+        public long Amount { get; set; }
+        public string VnpResponseCode { get; set; }
+        public string VnpTransactionStatus { get; set; }
 
+        public void Set(string code, string message)
+        {
+            RspCode = code;
+            Message = message;
+        }
     }
 }

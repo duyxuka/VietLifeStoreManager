@@ -40,6 +40,10 @@ using VietlifeStore.Configurations.DatLichGiamGias;
 using System.Reflection.Emit;
 using VietlifeStore.Configurations.Mails;
 using VietlifeStore.ChucNang.DatLichs.Emails;
+using VietlifeStore.ChucNang.ChatAIs;
+using VietlifeStore.Configurations.ChatAIs;
+using VietlifeStore.Entity.SEOs;
+using VietlifeStore.Configurations.SEOs;
 
 namespace VietlifeStore.EntityFrameworkCore;
 
@@ -121,6 +125,16 @@ public class VietlifeStoreDbContext :
     public DbSet<EmailOpenTracking> EmailOpenTrackings { get; set; }
     public DbSet<EmailUnsubscribe> EmailUnsubscribes { get; set; }
 
+    //ChatAI
+    public DbSet<Conversation> Conversations { get; set; }
+    public DbSet<ChatMessage> ChatMessages { get; set; }
+
+    //SEO
+    public DbSet<SeoConfig> SeoConfigs { get; set; }
+
+    //Tin t?c
+    public DbSet<TinTuc> TinTucs { get; set; }
+
 
     #endregion
 
@@ -188,6 +202,16 @@ public class VietlifeStoreDbContext :
         builder.ApplyConfiguration(new EmailLogConfiguration());
         builder.ApplyConfiguration(new EmailOpenTrackingConfiguration());
         builder.ApplyConfiguration(new EmailUnsubscribeConfiguration());
+
+        //ChatAI
+        builder.ApplyConfiguration(new ConversationConfiguration());
+        builder.ApplyConfiguration(new ChatMessageConfiguration());
+
+        //SEO
+        builder.ApplyConfiguration(new SEOConfiguration());
+
+        //Tin t?c
+        builder.ApplyConfiguration(new TinTucConfiguration());
         /* Configure your own tables/entities inside here */
 
         //builder.Entity<YourEntity>(b =>

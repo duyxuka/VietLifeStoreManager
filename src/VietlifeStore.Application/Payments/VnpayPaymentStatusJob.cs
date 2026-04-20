@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using VietlifeStore.Entity.DonHangs;
 using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Volo.Abp.Uow;
+using System.Collections.Generic;
 
 namespace VietlifeStore.Payments
 {
@@ -12,13 +14,16 @@ namespace VietlifeStore.Payments
     {
         private readonly IRepository<DonHang, Guid> _donHangRepo;
         private readonly IConfiguration _configuration;
+        private readonly IUnitOfWorkManager _uowManager;
 
         public VnpayPaymentStatusJob(
             IRepository<DonHang, Guid> donHangRepo,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IUnitOfWorkManager uowManager)
         {
             _donHangRepo = donHangRepo;
             _configuration = configuration;
+            _uowManager = uowManager;
         }
 
         /// <summary>
@@ -26,60 +31,35 @@ namespace VietlifeStore.Payments
         /// </summary>
         public async Task CheckPendingPaymentsAsync()
         {
-            var vnPay = new VnPayLibrary();
-
             var now = DateTime.Now;
-            var timeoutMinutes = 15;
 
-            // Query trực tiếp DB
-            var queryable = await _donHangRepo.GetQueryableAsync();
+            List<DonHang> expiredOrders;
 
-            var pendingOrders = await queryable
-                .Where(o =>
-                    o.PhuongThucThanhToan == "VNPAY" &&
-                    o.TrangThai == 0 &&
-                    o.CreationTime <= now.AddMinutes(-timeoutMinutes))
-                .ToListAsync();
-
-            if (!pendingOrders.Any())
-                return;
-
-            foreach (var order in pendingOrders)
+            using (var uow = _uowManager.Begin(requiresNew: true, isTransactional: false))
             {
+                var queryable = await _donHangRepo.GetQueryableAsync();
+                expiredOrders = await queryable
+                    .Where(o =>
+                        o.PhuongThucThanhToan == "VNPAY" &&
+                        o.TrangThai == 0 &&
+                        o.CreationTime <= now.AddMinutes(-15))
+                    .ToListAsync();
+
+                await uow.CompleteAsync();
+            }
+
+            if (!expiredOrders.Any()) return;
+
+            foreach (var order in expiredOrders)
+            {
+                using var uow = _uowManager.Begin(requiresNew: true, isTransactional: true);
                 try
                 {
-                    var result = await vnPay.QueryTransactionAsync(
-                        txnRef: order.Ma,
-                        transactionDate: order.CreationTime.ToString("yyyyMMddHHmmss"),
-                        vnp_TmnCode: _configuration["Vnpay:TmnCode"],
-                        vnp_HashSecret: _configuration["Vnpay:HashSecret"]
-                    );
-
-                    if (result == null)
-                    {
-                        order.TrangThai = 7; // Hủy
-                    }
-                    else if (result.vnp_TxnRef != order.Ma)
-                    {
-                        continue;
-                    }
-                    else if (result.vnp_TransactionStatus == "00" ||
-                             result.vnp_ResponseCode == "00")
-                    {
-                        order.TrangThai = 1; // Thành công
-                    }
-                    else
-                    {
-                        order.TrangThai = 7; // Thất bại
-                    }
-
+                    order.TrangThai = 7; // Expired — không cần gọi VNPay QueryDR nữa
                     await _donHangRepo.UpdateAsync(order);
+                    await uow.CompleteAsync();
                 }
-                catch
-                {
-                    order.TrangThai = 7;
-                    await _donHangRepo.UpdateAsync(order);
-                }
+                catch { /* log và bỏ qua, job chạy lại sau 5 phút */ }
             }
         }
     }

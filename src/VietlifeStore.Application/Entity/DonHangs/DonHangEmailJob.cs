@@ -66,7 +66,7 @@ namespace VietlifeStore.Entity.DonHangs
                 productDetails +=
                     "<tr>"
                     + $"<td style='padding:10px;border:1px solid #ddd'>{product?.Ten}</td>"
-                    + $"<td style='padding:10px;border:1px solid #ddd'><img src='http://42.96.61.186:8090/files/{image}' width='80'/></td>"
+                    + $"<td style='padding:10px;border:1px solid #ddd'><img src='https://mayhutsua.com.vn/files/{image}' width='80'/></td>"
                     + $"<td style='padding:10px;border:1px solid #ddd'>{item.SanPhamBienThe}</td>"
                     + $"<td style='padding:10px;border:1px solid #ddd'>{item.QuaTang}</td>"
                     + $"<td style='padding:10px;border:1px solid #ddd'>{item.SoLuong}</td>"

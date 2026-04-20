@@ -126,6 +126,37 @@
     "Permission:PaymentInformationModel.Update": "Update order VNPAY",
 
     "Permission:Dashboard": "Dashboard",
-    "Permission:Dashboard.View": "View Dashboard"
+    "Permission:Dashboard.View": "View Dashboard",
+
+    "Permission:ChuongTrinhGiamGia": "Discount program",
+    "Permission:ChuongTrinhGiamGia.View": "View discount program",
+    "Permission:ChuongTrinhGiamGia.Create": "Create discount program",
+    "Permission:ChuongTrinhGiamGia.Update": "Update discount program",
+    "Permission:ChuongTrinhGiamGia.Delete": "Delete discount program",
+
+    "Permission:EmailTemplate": "Email template",
+    "Permission:EmailTemplate.View": "View email template",
+    "Permission:EmailTemplate.Create": "Create email template",
+    "Permission:EmailTemplate.Update": "Update email template",
+    "Permission:EmailTemplate.Delete": "Delete email template",
+
+    "Permission:EmailCampaign": "Email campaign",
+    "Permission:EmailCampaign.View": "View email campaign",
+    "Permission:EmailCampaign.Create": "Create email campaign",
+    "Permission:EmailCampaign.Update": "Update email campaign",
+    "Permission:EmailCampaign.Delete": "Delete email campaign",
+    "Permission:EmailCampaign.Send": "Send email campaign",
+
+    "Permission:SeoConfig": "SEOConfig",
+    "Permission:SeoConfig.View": "View SEOConfig",
+    "Permission:SeoConfig.Create": "Create SEOConfig",
+    "Permission:SeoConfig.Update": "Update SEOConfig",
+    "Permission:SeoConfig.Delete": "Delete SEOConfig",
+
+    "Permission:TinTuc": "News",
+    "Permission:TinTuc.View": "View news",
+    "Permission:TinTuc.Create": "Create news",
+    "Permission:TinTuc.Update": "Update news",
+    "Permission:TinTuc.Delete": "Delete news"
   }
 }

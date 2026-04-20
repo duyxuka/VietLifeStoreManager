@@ -43,5 +43,7 @@ namespace VietlifeStore.Entity.SanPhamsList.SanPhams
         public List<string> AnhPhu { get; set; } = new();
         public List<string> AnhPhuGiuLai { get; set; } = new List<string>();
         public decimal? PhanTramKhuyenMai { get; set; }
+        public List<int?>? AnhPhuThuTus { get; set; }        // ThuTu ảnh mới
+        public List<int?>? AnhPhuGiuLaiThuTus { get; set; }
     }
 }

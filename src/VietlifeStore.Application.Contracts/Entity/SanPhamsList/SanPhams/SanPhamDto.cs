@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using VietlifeStore.Entity.SanPhamsList.AnhSanPhams;
 using VietlifeStore.Entity.SanPhamsList.SanPhamBienThes;
 using VietlifeStore.Entity.SanPhamsList.ThuocTinhs;
 using Volo.Abp.Application.Dtos;
@@ -47,5 +48,6 @@ namespace VietlifeStore.Entity.SanPhamsList.SanPhams
         public decimal? GiaBienTheMin { get; set; }
         public decimal? GiaBienTheMax { get; set; }
         public int? PhanTramGiamGiaBienThe { get; set; }
+        public List<AnhSanPhamDto> AnhPhuData { get; set; } = new();
     }
 }

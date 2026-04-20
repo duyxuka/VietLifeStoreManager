@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using VietlifeStore.Entity.CamNangs;
+using VietlifeStore.Entity.CamNangsList.CamNangs;
 using VietlifeStore.Entity.MediaContainers;
 using VietlifeStore.Entity.SanPhamsList.SanPhams;
 using VietlifeStore.Entity.UploadFile;
@@ -19,7 +20,7 @@ using Volo.Abp.BlobStoring;
 using Volo.Abp.Content;
 using Volo.Abp.Domain.Repositories;
 
-namespace VietlifeStore.Entity.CamNangsList.CamNangs
+namespace VietlifeStore.Entity.CamNangs
 {
     public class CamNangsAppService :
         CrudAppService<
@@ -258,7 +259,8 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
                 Mota = GetShortDescription(x.Mota, 200),
                 CreationTime = x.CreationTime,
                 TrangThai = x.TrangThai,
-                TenDanhMuc = x.TenDanhMuc
+                TenDanhMuc = x.TenDanhMuc,
+                SlugDanhMuc = x.DanhMucSlug
             }).ToList();
 
             return new PagedResultDto<CamNangInListDto>(total, result);
@@ -287,7 +289,8 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
                     Slug = cn.Slug,
                     Anh = cn.Anh,
                     CreationTime = cn.CreationTime,
-                    TenDanhMuc = dm.Ten
+                    TenDanhMuc = dm.Ten,
+                    SlugDanhMuc = dm.Slug
                 };
 
             return await AsyncExecuter.ToListAsync(
@@ -299,33 +302,27 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
         public async Task<List<CamNangInListDto>> GetByDanhMucAsync(string slug)
         {
             if (string.IsNullOrWhiteSpace(slug))
-            {
                 throw new UserFriendlyException("Slug danh mục không hợp lệ");
-            }
 
-            var danhMuc = await _danhMucRepo.FirstOrDefaultAsync(x => x.Slug == slug);
-            if (danhMuc == null)
-            {
-                throw new UserFriendlyException("Danh mục không tồn tại");
-            }
+            var camNangQueryable = await Repository.GetQueryableAsync();
+            var danhMucQueryable = await _danhMucRepo.GetQueryableAsync();
 
-            var queryable = await Repository.GetQueryableAsync();
+            var query = from cn in camNangQueryable
+                        join dm in danhMucQueryable on cn.DanhMucCamNangId equals dm.Id
+                        where dm.Slug == slug && cn.TrangThai
+                        orderby cn.CreationTime descending
+                        select new CamNangInListDto
+                        {
+                            Id = cn.Id,
+                            Ten = cn.Ten,
+                            Slug = cn.Slug,
+                            Anh = cn.Anh,
+                            CreationTime = cn.CreationTime,
+                            TenDanhMuc = dm.Ten,      // Bổ sung thêm tên danh mục nếu cần
+                            SlugDanhMuc = dm.Slug     // Đã có SlugDanhMuc
+                        };
 
-            var result = await AsyncExecuter.ToListAsync(
-                queryable
-                    .Where(x => x.DanhMucCamNangId == danhMuc.Id && x.TrangThai)
-                    .OrderByDescending(x => x.CreationTime).Take(5)
-                    .Select(x => new CamNangInListDto
-                    {
-                        Id = x.Id,
-                        Ten = x.Ten,
-                        Slug = x.Slug,
-                        Anh = x.Anh,
-                        CreationTime = x.CreationTime
-                    })
-            );
-
-            return result;
+            return await AsyncExecuter.ToListAsync(query.Take(5));
         }
 
         [AllowAnonymous]

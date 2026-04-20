@@ -12,5 +12,6 @@ namespace VietlifeStore.Entity.SanPhamsList.AnhSanPhams
         public string Anh { get; set; }
         public bool Status { get; set; } = true;
         public Guid SanPhamId { get; set; }
+        public int? ThuTu { get; set; }
     }
 }

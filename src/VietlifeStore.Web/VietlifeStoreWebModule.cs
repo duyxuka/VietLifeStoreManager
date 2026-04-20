@@ -66,6 +66,9 @@ using VietlifeStore.ChucNang.DatLichs;
 using VietlifeStore.Web.Hangfire;
 using Volo.Abp.AspNetCore.SignalR;
 using VietlifeStore.Entity.DashboardStat;
+using VietlifeStore.ChucNang.ChatAIs;
+using VietlifeStore.Payments;
+using Microsoft.Extensions.FileProviders;
 
 namespace VietlifeStore.Web;
 
@@ -189,6 +192,19 @@ public class VietlifeStoreWebModule : AbpModule
             options.Queues = new[] { "giam-gia", "default" };
         });
 
+        context.Services.Configure<GeminiOptions>(configuration.GetSection("Gemini"));   // ??c t? appsettings.json
+
+        context.Services.AddHttpClient("Gemini", client =>
+        {
+            client.Timeout = TimeSpan.FromMinutes(5); // Streaming có th? m?t th?i gian
+        });
+
+        context.Services.AddSignalR();
+        context.Services.AddTransient<IAIProviderService, GeminiProviderService>();
+        Configure<AbpAntiForgeryOptions>(options =>
+        {
+            options.AutoValidate = false;
+        });
     }
 
 
@@ -342,7 +358,7 @@ public class VietlifeStoreWebModule : AbpModule
     {
         var app = context.GetApplicationBuilder();
         var env = context.GetEnvironment();
-
+        app.UsePathBase("/dataApi");
         app.UseForwardedHeaders(new ForwardedHeadersOptions
         {
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
@@ -372,11 +388,16 @@ public class VietlifeStoreWebModule : AbpModule
         if (!env.IsDevelopment())
         {
             app.UseErrorPage();
-            app.UseHsts();
         }
 
         app.UseDefaultFiles();
         app.UseStaticFiles();
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = new PhysicalFileProvider(
+            Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")),
+            RequestPath = ""
+        });
         app.UseCorrelationId();
         app.UseRouting();
         app.UseCors();
@@ -397,7 +418,7 @@ public class VietlifeStoreWebModule : AbpModule
         app.UseSwagger();
         app.UseAbpSwaggerUI(options =>
         {
-            options.SwaggerEndpoint("/swagger/v1/swagger.json", "VietlifeStore API");
+            options.SwaggerEndpoint("/dataApi/swagger/v1/swagger.json", "VietlifeStore API");
 
             var configuration = context.ServiceProvider.GetRequiredService<IConfiguration>();
             options.OAuthClientId(configuration["AuthServer:SwaggerClientId"]);
@@ -420,6 +441,8 @@ public class VietlifeStoreWebModule : AbpModule
         app.UseConfiguredEndpoints(endpoints =>
         {
             endpoints.MapHub<TrackingHub>("/hubs/tracking");
+            endpoints.MapHub<ChatHub>("/hubs/chat");
+            endpoints.MapControllers();
             // ? Health check — WithOrder(-1) ?? ?u tiên cao h?n fallback SPA
             endpoints.MapHealthChecks("/health-status", new HealthCheckOptions
             {
@@ -437,10 +460,11 @@ public class VietlifeStoreWebModule : AbpModule
             endpoints.MapHangfireDashboard("/hangfire");
 
             // ADMIN SPA
-            endpoints.MapFallbackToFile("/admin/{*path:nonfile}", "admin/index.html");
+            //endpoints.MapFallbackToFile("/admin/{*path:nonfile}", "admin/index.html");
 
             // USER SPA — luôn ??t CU?I CÙNG
-            endpoints.MapFallbackToFile("{*path:nonfile}", "index.html");
+            //endpoints.MapFallbackToFile("{*path:nonfile}", "index.html");
+            //endpoints.MapFallbackToFile("{*path:nonfile}", "user/dist/BabyStore/browser/index.html");
         });
     }
 }

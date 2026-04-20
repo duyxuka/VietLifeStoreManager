@@ -11,6 +11,8 @@ using Volo.Abp;
 using VietlifeStore.Entity.SanPhams;
 using VietlifeStore.ChucNang.DatLichs.DatLichGiamGiaSanPhams.ChuongTrinhGiamGiaItems;
 using Microsoft.Extensions.Logging;
+using VietlifeStore.Permissions;
+using Microsoft.AspNetCore.Authorization;
 
 namespace VietlifeStore.ChucNang.DatLichs
 {
@@ -44,9 +46,16 @@ namespace VietlifeStore.ChucNang.DatLichs
             _bienTheRepo = bienTheRepo;
             _scheduler = scheduler;
             _logger = logger;
+
+            GetPolicyName = VietlifeStorePermissions.ChuongTrinhGiamGia.Default;
+            GetListPolicyName = VietlifeStorePermissions.ChuongTrinhGiamGia.View;
+            CreatePolicyName = VietlifeStorePermissions.ChuongTrinhGiamGia.Create;
+            UpdatePolicyName = VietlifeStorePermissions.ChuongTrinhGiamGia.Update;
+            DeletePolicyName = VietlifeStorePermissions.ChuongTrinhGiamGia.Delete;
         }
 
         // ================= CREATE =================
+        [Authorize(VietlifeStorePermissions.ChuongTrinhGiamGia.Create)]
         public override async Task<ChuongTrinhDto> CreateAsync(CreateUpdateChuongTrinhDto input)
         {
             ValidateThoiGian(input.ThoiGianBatDau, input.ThoiGianKetThuc);
@@ -76,6 +85,7 @@ namespace VietlifeStore.ChucNang.DatLichs
         }
 
         // ================= UPDATE =================
+        [Authorize(VietlifeStorePermissions.ChuongTrinhGiamGia.Update)]
         public override async Task<ChuongTrinhDto> UpdateAsync(Guid id, CreateUpdateChuongTrinhDto input)
         {
             var ct = await Repository.GetAsync(id);
@@ -168,6 +178,7 @@ namespace VietlifeStore.ChucNang.DatLichs
         }
 
         // ================= GET =================
+        [Authorize(VietlifeStorePermissions.ChuongTrinhGiamGia.View)]
         public override async Task<ChuongTrinhDto> GetAsync(Guid id)
         {
             var entity = await Repository.GetAsync(id);
@@ -235,6 +246,7 @@ namespace VietlifeStore.ChucNang.DatLichs
         }
 
         // ================= GET ALL =================
+        [Authorize(VietlifeStorePermissions.ChuongTrinhGiamGia.View)]
         public async Task<List<ChuongTrinhInListDto>> GetListAllAsync()
         {
             var list = await Repository.GetListAsync();
@@ -256,6 +268,7 @@ namespace VietlifeStore.ChucNang.DatLichs
         }
 
         // ================= FILTER =================
+        [Authorize(VietlifeStorePermissions.ChuongTrinhGiamGia.View)]
         public async Task<PagedResultDto<ChuongTrinhInListDto>> GetListFilterAsync(BaseListFilterDto input)
         {
             var query = (await Repository.GetQueryableAsync())
@@ -286,6 +299,7 @@ namespace VietlifeStore.ChucNang.DatLichs
         }
 
         // ================= DELETE MULTIPLE =================
+        [Authorize(VietlifeStorePermissions.ChuongTrinhGiamGia.Delete)]
         public async Task DeleteMultipleAsync(IEnumerable<Guid> ids)
         {
             var idList = ids.ToList();
@@ -306,6 +320,7 @@ namespace VietlifeStore.ChucNang.DatLichs
         }
 
         // ================= CANCEL =================
+        [Authorize(VietlifeStorePermissions.ChuongTrinhGiamGia.Update)]
         public async Task CancelAsync(Guid id)
         {
             var ct = await Repository.GetAsync(id);
@@ -326,6 +341,7 @@ namespace VietlifeStore.ChucNang.DatLichs
         }
 
         // ================= REMOVE ITEM =================
+        [Authorize(VietlifeStorePermissions.ChuongTrinhGiamGia.Delete)]
         public async Task RemoveItemAsync(Guid chuongTrinhId, Guid itemId)
         {
             var ct = await Repository.GetAsync(chuongTrinhId);

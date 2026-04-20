@@ -22,6 +22,7 @@ using System.Net.Mail;
 using System.Net;
 using VietlifeStore.Entity.TaiKhoans;
 using VietlifeStore.System.Users;
+using VietlifeStore.Permissions;
 
 namespace VietlifeStore.ChucNang.Mails
 {
@@ -59,15 +60,16 @@ namespace VietlifeStore.ChucNang.Mails
             _hangfire = hangfire;
             _userRepo = userRepo;
 
-            //GetPolicyName = EmailPermissions.Campaign.Default;
-            //GetListPolicyName = EmailPermissions.Campaign.Default;
-            //CreatePolicyName = EmailPermissions.Campaign.Create;
-            //UpdatePolicyName = EmailPermissions.Campaign.Update;
-            //DeletePolicyName = EmailPermissions.Campaign.Delete;
+            GetPolicyName = VietlifeStorePermissions.EmailCampaign.Default;
+            GetListPolicyName = VietlifeStorePermissions.EmailCampaign.View;
+            CreatePolicyName = VietlifeStorePermissions.EmailCampaign.Create;
+            UpdatePolicyName = VietlifeStorePermissions.EmailCampaign.Update;
+            DeletePolicyName = VietlifeStorePermissions.EmailCampaign.Delete;
+            DeletePolicyName = VietlifeStorePermissions.EmailCampaign.Send;
         }
 
         // ================= CREATE =================
-        //[Authorize(EmailPermissions.Campaign.Create)]
+        [Authorize(VietlifeStorePermissions.EmailCampaign.Create)]
         public override async Task<EmailCampaignDto> CreateAsync(CreateUpdateEmailCampaignDto input)
         {
             if (!input.DanhSachEmail.Any())
@@ -145,7 +147,7 @@ namespace VietlifeStore.ChucNang.Mails
         }
 
         // ================= UPDATE =================
-        //[Authorize(EmailPermissions.Campaign.Update)]
+        [Authorize(VietlifeStorePermissions.EmailCampaign.Update)]
         public override async Task<EmailCampaignDto> UpdateAsync(Guid id, CreateUpdateEmailCampaignDto input)
         {
             var entity = await Repository.GetAsync(id);
@@ -164,7 +166,7 @@ namespace VietlifeStore.ChucNang.Mails
         }
 
         // ================= DELETE SINGLE =================
-        //[Authorize(EmailPermissions.Campaign.Delete)]
+        [Authorize(VietlifeStorePermissions.EmailCampaign.Delete)]
         public override async Task DeleteAsync(Guid id)
         {
             var entity = await Repository.GetAsync(id);
@@ -189,7 +191,7 @@ namespace VietlifeStore.ChucNang.Mails
         }
 
         // ================= DELETE MULTIPLE =================
-        //[Authorize(EmailPermissions.Campaign.Delete)]
+        [Authorize(VietlifeStorePermissions.EmailCampaign.Delete)]
         public async Task DeleteMultipleAsync(IEnumerable<Guid> ids)
         {
             var list = await Repository.GetListAsync(x => ids.Contains(x.Id));
@@ -217,6 +219,7 @@ namespace VietlifeStore.ChucNang.Mails
         }
 
         // ================= FILTER + PAGING =================
+        [Authorize(VietlifeStorePermissions.EmailCampaign.View)]
         public async Task<PagedResultDto<EmailCampaignInListDto>> GetListFilterAsync(EmailCampaignFilterDto input)
         {
             var query = (await Repository.GetQueryableAsync())
@@ -273,7 +276,7 @@ namespace VietlifeStore.ChucNang.Mails
         }
 
         // ================= SEND NOW =================
-        //[Authorize(EmailPermissions.Campaign.Send)]
+        [Authorize(VietlifeStorePermissions.EmailCampaign.Send)]
         public async Task SendNowAsync(Guid id)
         {
             var entity = await Repository.GetAsync(id);
@@ -304,7 +307,7 @@ namespace VietlifeStore.ChucNang.Mails
         }
 
         // ================= SCHEDULE =================
-        //[Authorize(EmailPermissions.Campaign.Send)]
+        [Authorize(VietlifeStorePermissions.EmailCampaign.Send)]
         public async Task ScheduleAsync(Guid id, DateTime ngayGui)
         {
             if (ngayGui <= DateTime.Now)
@@ -340,7 +343,7 @@ namespace VietlifeStore.ChucNang.Mails
         }
 
         // ================= PAUSE =================
-        //[Authorize(EmailPermissions.Campaign.Send)]
+        [Authorize(VietlifeStorePermissions.EmailCampaign.Send)]
         public async Task PauseAsync(Guid id)
         {
             var entity = await Repository.GetAsync(id);
@@ -375,7 +378,7 @@ namespace VietlifeStore.ChucNang.Mails
         }
 
         // ================= SEND DIRECT =================
-        //[Authorize(EmailPermissions.Campaign.Send)]
+        [Authorize(VietlifeStorePermissions.EmailCampaign.Send)]
         public async Task SendDirectAsync(SendDirectEmailDto input)
         {
             var isUnsub = await _unsubRepo.AnyAsync(

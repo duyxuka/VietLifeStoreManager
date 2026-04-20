@@ -161,6 +161,41 @@ public class VietlifeStorePermissionDefinitionProvider : PermissionDefinitionPro
         //Dashboard
         var dashBoardPermission = VietLifeStoreGroup.AddPermission(VietlifeStorePermissions.Dashboard.Default, L("Permission:Dashboard"));
         dashBoardPermission.AddChild(VietlifeStorePermissions.Dashboard.View, L("Permission:Dashboard.View"));
+
+        //Email
+        var emailTemplatePermission = VietLifeStoreGroup.AddPermission(VietlifeStorePermissions.EmailTemplate.Default, L("Permission:EmailTemplate"));
+        emailTemplatePermission.AddChild(VietlifeStorePermissions.EmailTemplate.View, L("Permission:EmailTemplate.View"));
+        emailTemplatePermission.AddChild(VietlifeStorePermissions.EmailTemplate.Create, L("Permission:EmailTemplate.Create"));
+        emailTemplatePermission.AddChild(VietlifeStorePermissions.EmailTemplate.Update, L("Permission:EmailTemplate.Update"));
+        emailTemplatePermission.AddChild(VietlifeStorePermissions.EmailTemplate.Delete, L("Permission:EmailTemplate.Delete"));
+
+        var emailCampaignPermission = VietLifeStoreGroup.AddPermission(VietlifeStorePermissions.EmailCampaign.Default, L("Permission:EmailCampaign"));
+        emailCampaignPermission.AddChild(VietlifeStorePermissions.EmailCampaign.View, L("Permission:EmailCampaign.View"));
+        emailCampaignPermission.AddChild(VietlifeStorePermissions.EmailCampaign.Create, L("Permission:EmailCampaign.Create"));
+        emailCampaignPermission.AddChild(VietlifeStorePermissions.EmailCampaign.Update, L("Permission:EmailCampaign.Update"));
+        emailCampaignPermission.AddChild(VietlifeStorePermissions.EmailCampaign.Delete, L("Permission:EmailCampaign.Delete"));
+        emailCampaignPermission.AddChild(VietlifeStorePermissions.EmailCampaign.Send, L("Permission:EmailCampaign.Send"));
+
+        //ChuongTrinhGiamGia
+        var chuongTrinhGiamGiaPermission = VietLifeStoreGroup.AddPermission(VietlifeStorePermissions.ChuongTrinhGiamGia.Default, L("Permission:ChuongTrinhGiamGia"));
+        chuongTrinhGiamGiaPermission.AddChild(VietlifeStorePermissions.ChuongTrinhGiamGia.View, L("Permission:ChuongTrinhGiamGia.View"));
+        chuongTrinhGiamGiaPermission.AddChild(VietlifeStorePermissions.ChuongTrinhGiamGia.Create, L("Permission:ChuongTrinhGiamGia.Create"));
+        chuongTrinhGiamGiaPermission.AddChild(VietlifeStorePermissions.ChuongTrinhGiamGia.Update, L("Permission:ChuongTrinhGiamGia.Update"));
+        chuongTrinhGiamGiaPermission.AddChild(VietlifeStorePermissions.ChuongTrinhGiamGia.Delete, L("Permission:ChuongTrinhGiamGia.Delete"));
+
+        // SEO
+        var seoConfigPermission = VietLifeStoreGroup.AddPermission(VietlifeStorePermissions.SeoConfig.Default, L("Permission:SeoConfig"));
+        seoConfigPermission.AddChild(VietlifeStorePermissions.SeoConfig.View, L("Permission:SeoConfig.View"));
+        seoConfigPermission.AddChild(VietlifeStorePermissions.SeoConfig.Create, L("Permission:SeoConfig.Create"));
+        seoConfigPermission.AddChild(VietlifeStorePermissions.SeoConfig.Update, L("Permission:SeoConfig.Update"));
+        seoConfigPermission.AddChild(VietlifeStorePermissions.SeoConfig.Delete, L("Permission:SeoConfig.Delete"));
+
+        //TinTuc
+        var tinTucPermission = VietLifeStoreGroup.AddPermission(VietlifeStorePermissions.TinTuc.Default, L("Permission:TinTuc"));
+        tinTucPermission.AddChild(VietlifeStorePermissions.TinTuc.View, L("Permission:TinTuc.View"));
+        tinTucPermission.AddChild(VietlifeStorePermissions.TinTuc.Create, L("Permission:TinTuc.Create"));
+        tinTucPermission.AddChild(VietlifeStorePermissions.TinTuc.Update, L("Permission:TinTuc.Update"));
+        tinTucPermission.AddChild(VietlifeStorePermissions.TinTuc.Delete, L("Permission:TinTuc.Delete"));
     }
 
     private static LocalizableString L(string name)

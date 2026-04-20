@@ -123,7 +123,10 @@ namespace VietlifeStore.Entity.CamNangs
                     Id = dm.Id,
                     Ten = dm.Ten,
                     Slug = dm.Slug,
-                    SoLuongCamNang = camNangGroup.Count(x => x.TrangThai)
+                    SoLuongCamNang = camNangGroup.Count(x => x.TrangThai),
+                    TitleSEO = dm.TitleSEO,
+                    Keyword = dm.Keyword,
+                    DescriptionSEO = dm.DescriptionSEO
                 };
 
             return await AsyncExecuter.ToListAsync(query);

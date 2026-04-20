@@ -38,7 +38,8 @@ namespace VietlifeStore.Entity.SanPhams
             {
                 SanPhamId = input.SanPhamId,
                 Anh = input.Anh,
-                Status = true
+                Status = true,
+                ThuTu = input.ThuTu
             };
 
             await _repository.InsertAsync(entity, autoSave: true);

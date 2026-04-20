@@ -18,12 +18,6 @@ namespace VietlifeStore.Payments
 {
     public class VnPayLibrary
     {
-        private readonly IRepository<DonHang, Guid> _donHangRepo;
-        public VnPayLibrary(IRepository<DonHang, Guid> donHangRepo)
-        {
-            _donHangRepo = donHangRepo;
-        }
-
         public VnPayLibrary()
         {
         }
@@ -150,34 +144,11 @@ namespace VietlifeStore.Payments
                     return returnContent;
                 }
 
-                var order = await _donHangRepo.FirstOrDefaultAsync(x => x.Ma == orderId);
-
-                if (order == null)
-                {
-                    returnContent.Set("01", "Order not found");
-                }
-                else if (order.TongTien != vnp_Amount)
-                {
-                    returnContent.Set("04", "Invalid amount");
-                }
-                else if (order.TrangThai != 0)
-                {
-                    returnContent.Set("02", "Order already confirmed");
-                }
-                else
-                {
-                    if (vnpResponseCode == "00" && vnp_TransactionStatus == "00")
-                    {
-                        order.TrangThai = 1; // Đơn hàng đã xác nhận
-                    }
-                    else
-                    {
-                        order.TrangThai = 7; // Thất bại
-                    }
-
-                    await _donHangRepo.UpdateAsync(order);
-                    returnContent.Set("00", "Confirm Success");
-                }
+                returnContent.OrderId = orderId;
+                returnContent.Amount = vnp_Amount;
+                returnContent.VnpResponseCode = vnpResponseCode;
+                returnContent.VnpTransactionStatus = vnp_TransactionStatus;
+                returnContent.Set("00", "Parsed OK");
             }
             catch (Exception e)
             {

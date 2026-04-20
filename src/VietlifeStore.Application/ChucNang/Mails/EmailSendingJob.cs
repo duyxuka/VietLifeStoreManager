@@ -170,11 +170,11 @@ namespace VietlifeStore.ChucNang.Mails
         private string ProcessEmailBody(string html, EmailQueue queue)
         {
             // Tracking pixel
-            var trackingPixel = $"<img src='https://vietlifebaby.vn/api/email/track/open/{queue.Id}' " +
+            var trackingPixel = $"<img src='https://mayhutsua.com.vn/api/email/track/open/{queue.Id}' " +
                                 $"width='1' height='1' style='display:none' />";
 
             // Unsubscribe link
-            var unsubLink = $"https://vietlifebaby.vn/unsubscribe?email={Uri.EscapeDataString(queue.Email)}";
+            var unsubLink = $"https://mayhutsua.com.vn/unsubscribe?email={Uri.EscapeDataString(queue.Email)}";
 
             return html
                 .Replace("{{tenKhachHang}}", queue.TenKhachHang ?? "Quý khách")

@@ -150,8 +150,12 @@ namespace VietlifeStore.Entity.DonHangs
 
 
             await UnitOfWorkManager.Current.SaveChangesAsync();
-            _backgroundJobClient.Enqueue<DonHangEmailJob>(
-                job => job.SendOrderSuccessAsync(donHang.Id));
+
+            if (donHang.PhuongThucThanhToan != "VNPAY")
+            {
+                _backgroundJobClient.Enqueue<DonHangEmailJob>(
+                    job => job.SendOrderSuccessAsync(donHang.Id));
+            }
 
             return ObjectMapper.Map<DonHang, DonHangDto>(donHang);
         }

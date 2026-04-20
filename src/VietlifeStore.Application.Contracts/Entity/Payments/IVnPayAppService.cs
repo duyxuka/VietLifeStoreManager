@@ -12,6 +12,6 @@ namespace VietlifeStore.Entity.Payments
     {
         string CreatePaymentUrl(DonHang model);
         PaymentResponseModel PaymentExecute(IQueryCollection collections);
-        PaymentIPN Responsepay(IQueryCollection collections);
+        Task<PaymentIPN> ResponsepayAsync(IQueryCollection collections);
     }
 }

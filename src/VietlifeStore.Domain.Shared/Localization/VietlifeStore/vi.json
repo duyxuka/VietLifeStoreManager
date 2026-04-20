@@ -126,6 +126,38 @@
     "Permission:PaymentInformationModel.Delete": "Xóa đơn hàng VNPAY",
 
     "Permission:Dashboard": "Dashboard",
-    "Permission:Dashboard.View": "Xem Dashboard"
+    "Permission:Dashboard.View": "Xem Dashboard",
+
+    "Permission:ChuongTrinhGiamGia": "Chương trình giảm giá",
+    "Permission:ChuongTrinhGiamGia.View": "Xem chương trình giảm giá",
+    "Permission:ChuongTrinhGiamGia.Create": "Tạo chương trình giảm giá",
+    "Permission:ChuongTrinhGiamGia.Update": "Cập nhật chương trình giảm giá",
+    "Permission:ChuongTrinhGiamGia.Delete": "Xóa chương trình giảm giá",
+
+    "Permission:EmailTemplate": "Mẫu email",
+    "Permission:EmailTemplate.View": "Xem mẫu email",
+    "Permission:EmailTemplate.Create": "Tạo mẫu email",
+    "Permission:EmailTemplate.Update": "Cập nhật mẫu email",
+    "Permission:EmailTemplate.Delete": "Xóa mẫu email",
+
+    "Permission:EmailCampaign": "Chiến dịch email",
+    "Permission:EmailCampaign.View": "Xem chiến dịch email",
+    "Permission:EmailCampaign.Create": "Tạo chiến dịch email",
+    "Permission:EmailCampaign.Update": "Cập nhật chiến dịch email",
+    "Permission:EmailCampaign.Delete": "Xóa chiến dịch email",
+    "Permission:EmailCampaign.Send": "Gửi chiến dịch email",
+
+    "Permission:SeoConfig": "Cấu hình SEO",
+    "Permission:SeoConfig.View": "Xem cấu hình SEO",
+    "Permission:SeoConfig.Create": "Tạo cấu hình SEO",
+    "Permission:SeoConfig.Update": "Cập nhật cấu hình SEO",
+    "Permission:SeoConfig.Delete": "Xóa cấu hình SEO",
+
+    "Permission:TinTuc": "Tin tức",
+    "Permission:TinTuc.View": "Xem tin tức",
+    "Permission:TinTuc.Create": "Tạo tin tức",
+    "Permission:TinTuc.Update": "Cập nhật tin tức",
+    "Permission:TinTuc.Delete": "Xóa tin tức"
+
   }
 }

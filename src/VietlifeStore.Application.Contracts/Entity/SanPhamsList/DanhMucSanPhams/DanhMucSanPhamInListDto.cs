@@ -16,5 +16,8 @@ namespace VietlifeStore.Entity.SanPhamsList.DanhMucSanPhams
         public bool TrangThai { get; set; } = true;
         public int SoLuongSanPham { get; set; }
         public int? ThuTu { get; set; }
+        public string TitleSEO { get; set; }
+        public string Keyword { get; set; }
+        public string DescriptionSEO { get; set; }
     }
 }

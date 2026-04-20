@@ -126,7 +126,7 @@ namespace VietlifeStore.System.Users
 
             var token = await _identityUserManager.GeneratePasswordResetTokenAsync(user);
 
-            var resetLink = $"http://localhost:4200/reset-password?userId={user.Id}&token={Uri.EscapeDataString(token)}";
+            var resetLink = $"https://mayhutsua.com.vn/reset-password?userId={user.Id}&token={Uri.EscapeDataString(token)}";
 
             var body = $@"
                 <!DOCTYPE html>

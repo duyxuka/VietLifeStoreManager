@@ -15,7 +15,7 @@ public static class HealthChecksBuilderExtensions
         var configuration = services.GetConfiguration();
 
         // ===== LẤY SelfUrl =====
-        var appSelfUrl = configuration["App:SelfUrl"] ?? "http://localhost:8099";
+        var appSelfUrl = configuration["App:SelfUrl"] ?? "https://mayhutsua.com.vn";
 
         // ===== LẤY HealthCheckUrl =====
         var healthCheckPath = configuration["App:HealthCheckUrl"] ?? "/health-status";

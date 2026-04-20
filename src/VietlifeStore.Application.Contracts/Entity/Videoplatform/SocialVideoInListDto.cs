@@ -10,7 +10,6 @@ namespace VietlifeStore.Entity.Videoplatform
     public class SocialVideoInListDto : EntityDto<Guid>
     {
         public string Title { get; set; }
-        public string Platform { get; set; }
         public string VideoId { get; set; }
         public string Section { get; set; }
         public int DisplayOrder { get; set; }

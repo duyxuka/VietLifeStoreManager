@@ -17,5 +17,6 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
         public bool TrangThai { get; set; } = true; // Trạng thái hiển thị
         public DateTime CreationTime { get; set; }
         public string TenDanhMuc { get; set; }
+        public string SlugDanhMuc { get; set; }
     }
 }
