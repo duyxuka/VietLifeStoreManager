@@ -229,11 +229,11 @@ namespace VietlifeStore.Entity.CamNangs
                     cn.Ten,
                     cn.Slug,
                     cn.Anh,
-                    Mota = cn.Mota.Substring(0, 200),
                     cn.CreationTime,
                     cn.TrangThai,
                     TenDanhMuc = dm.Ten,
-                    DanhMucSlug = dm.Slug
+                    DanhMucSlug = dm.Slug,
+                    DescriptionSEO = cn.DescriptionSEO
                 };
 
             if (!string.IsNullOrWhiteSpace(input.DanhMucSlug))
@@ -256,11 +256,11 @@ namespace VietlifeStore.Entity.CamNangs
                 Ten = x.Ten,
                 Slug = x.Slug,
                 Anh = x.Anh,
-                Mota = GetShortDescription(x.Mota, 200),
                 CreationTime = x.CreationTime,
                 TrangThai = x.TrangThai,
                 TenDanhMuc = x.TenDanhMuc,
-                SlugDanhMuc = x.DanhMucSlug
+                SlugDanhMuc = x.DanhMucSlug,
+                DescriptionSEO = x.DescriptionSEO
             }).ToList();
 
             return new PagedResultDto<CamNangInListDto>(total, result);

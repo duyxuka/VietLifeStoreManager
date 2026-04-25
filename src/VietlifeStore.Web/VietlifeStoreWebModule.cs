@@ -69,6 +69,7 @@ using VietlifeStore.Entity.DashboardStat;
 using VietlifeStore.ChucNang.ChatAIs;
 using VietlifeStore.Payments;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.Http;
 
 namespace VietlifeStore.Web;
 
@@ -399,6 +400,36 @@ public class VietlifeStoreWebModule : AbpModule
             RequestPath = ""
         });
         app.UseCorrelationId();
+        app.Use(async (context, next) =>
+        {
+            var path = context.Request.Path.Value?.ToLower() ?? "";
+
+            string[] spamKeywords = new[]
+            {
+                "porn", "xxx", "sex", "casino", "bet", "188bet",
+                "xvideo", "roulette", "adult","2026041200", "2026041100", "91674217", "49020787"
+            };
+
+            // ? n?u ch?a keyword spam ? tr? v? 410
+            if (spamKeywords.Any(k => path.Contains(k)))
+            {
+                context.Response.StatusCode = 410;
+                await context.Response.WriteAsync("Gone");
+                return;
+            }
+
+            // ? ch?n luôn m?y path hay b? hack
+            if (path.StartsWith("/store") ||
+                path.StartsWith("/wp-admin") ||
+                path.StartsWith("/wp-content") ||
+                path.StartsWith("/.env"))
+            {
+                context.Response.StatusCode = 410;
+                return;
+            }
+
+            await next();
+        });
         app.UseRouting();
         app.UseCors();
         app.MapAbpStaticAssets();

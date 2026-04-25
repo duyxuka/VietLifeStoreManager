@@ -108,6 +108,32 @@ namespace VietlifeStore.Entity.DonHangs
                 + "</div>";
 
             await SendEmailAsync(order.Email, $"Xác nhận đơn hàng #{order.Ma}", body);
+
+            var notifyEmails = _configuration
+            .GetSection("NotificationEmails")
+            .Get<List<string>>();
+
+            if (notifyEmails != null && notifyEmails.Any())
+            {
+                string adminSubject = $"[CÓ ĐƠN HÀNG MỚI] #{order.Ma}";
+
+                string adminBody =
+                    "<div style='font-family:Arial;font-size:14px'>"
+                    + "<h2 style='color:#1890ff'>Có đơn hàng mới</h2>"
+                    + $"<p><b>Mã đơn:</b> {order.Ma}</p>"
+                    + $"<p><b>Khách:</b> {order.Ten}</p>"
+                    + $"<p><b>SĐT:</b> {order.SoDienThoai}</p>"
+                    + $"<p><b>Tổng tiền:</b> {order.TongTien:#,##0} VNĐ</p>"
+                    + $"<p><b>Thanh toán:</b> {order.PhuongThucThanhToan}</p>"
+                    + "<hr/>"
+                    + productDetails
+                    + "</div>";
+
+                foreach (var email in notifyEmails)
+                {
+                    await SendEmailAsync(email, adminSubject, adminBody);
+                }
+            }
         }
 
         // ✅ Gửi mail thông báo hủy đơn hàng
@@ -165,6 +191,40 @@ namespace VietlifeStore.Entity.DonHangs
                 + "</div>";
 
             await SendEmailAsync(order.Email, $"Đơn hàng #{order.Ma} đã bị hủy", body);
+            var notifyEmails = _configuration
+                .GetSection("NotificationEmails")
+                .Get<List<string>>();
+
+            if (notifyEmails != null && notifyEmails.Any())
+            {
+                string adminSubject = $"[CÓ ĐƠN HÀNG BỊ HỦY] #{order.Ma}";
+
+                string adminBody =
+                    "<div style='font-family:Arial;font-size:14px'>"
+                    + "<h2 style='color:#ff4d4f'>Đơn hàng đã bị hủy</h2>"
+                    + $"<p><b>Mã đơn:</b> {order.Ma}</p>"
+                    + $"<p><b>Khách:</b> {order.Ten}</p>"
+                    + $"<p><b>SĐT:</b> {order.SoDienThoai}</p>"
+                    + $"<p><b>Địa chỉ:</b> {order.DiaChi}</p>"
+                    + $"<p><b>Tổng tiền:</b> {order.TongTien:#,##0} VNĐ</p>"
+                    + $"<p><b>Thanh toán:</b> {order.PhuongThucThanhToan}</p>"
+                    + "<hr/>"
+                    + "<h3>Chi tiết đơn hàng</h3>"
+                    + "<table style='width:100%;border-collapse:collapse'>"
+                    + "<tr style='background:#f5f5f5'>"
+                    + "<th style='padding:8px;border:1px solid #ddd'>Sản phẩm</th>"
+                    + "<th style='padding:8px;border:1px solid #ddd'>Số lượng</th>"
+                    + "<th style='padding:8px;border:1px solid #ddd'>Giá</th>"
+                    + "</tr>"
+                    + productList
+                    + "</table>"
+                    + "</div>";
+
+                foreach (var email in notifyEmails)
+                {
+                    await SendEmailAsync(email, adminSubject, adminBody);
+                }
+            }
         }
 
         // ================= PRIVATE =================

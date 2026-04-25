@@ -18,5 +18,6 @@ namespace VietlifeStore.Entity.CamNangsList.CamNangs
         public DateTime CreationTime { get; set; }
         public string TenDanhMuc { get; set; }
         public string SlugDanhMuc { get; set; }
+        public string DescriptionSEO { get; set; }
     }
 }
